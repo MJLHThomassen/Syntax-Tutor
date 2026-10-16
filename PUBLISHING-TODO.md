@@ -7,10 +7,10 @@ Already done: MIT license, changelog (one 0.1.0 section), icon, keywords and cat
 ## 1. Create the GitHub repository and push
 
 - [x] Create an empty repository on GitHub. Don't add a README or license: the project already has both.
-- [x] Add it as the remote and push (github.com/MJLHThomassen/syntax-tutor):
+- [x] Add it as the remote and push (github.com/MJLHThomassen/Syntax-Tutor):
 
   ```bash
-  git remote add origin https://github.com/MJLHThomassen/syntax-tutor.git
+  git remote add origin https://github.com/MJLHThomassen/Syntax-Tutor.git
   git push -u origin main
   ```
 

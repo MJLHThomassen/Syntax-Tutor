@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MJLHThomassen/syntax-tutor.git"
+    "url": "https://github.com/MJLHThomassen/Syntax-Tutor.git"
   },
   "bugs": {
-    "url": "https://github.com/MJLHThomassen/syntax-tutor/issues"
+    "url": "https://github.com/MJLHThomassen/Syntax-Tutor/issues"
   },
-  "homepage": "https://github.com/MJLHThomassen/syntax-tutor#readme",
+  "homepage": "https://github.com/MJLHThomassen/Syntax-Tutor#readme",
   "icon": "images/icon.png",
   "galleryBanner": {
     "color": "#1b1f2e",
