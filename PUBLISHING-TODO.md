@@ -6,15 +6,15 @@ Already done: MIT license, changelog (one 0.1.0 section), icon, keywords and cat
 
 ## 1. Create the GitHub repository and push
 
-- [ ] Create an empty repository on GitHub. Don't add a README or license: the project already has both.
-- [ ] Add it as the remote and push:
+- [x] Create an empty repository on GitHub. Don't add a README or license: the project already has both.
+- [x] Add it as the remote and push (github.com/MJLHThomassen/syntax-tutor):
 
   ```bash
-  git remote add origin https://github.com/<you>/syntax-tutor.git
+  git remote add origin https://github.com/MJLHThomassen/syntax-tutor.git
   git push -u origin main
   ```
 
-- [ ] In `package.json`, add `repository`, `bugs` and `homepage` fields, and remove `--allow-missing-repository` from the `package` script (Claude can do this once you have the URL).
+- [x] In `package.json`, add `repository`, `bugs` and `homepage` fields, and remove `--allow-missing-repository` from the `package` script (Claude can do this once you have the URL).
 
 The repository matters for two reasons. The Marketplace page links to it for issues and source code. And images in the README only work with a `repository` field: the packaging tool (`vsce`) uses it to turn relative image paths into full URLs.
 

@@ -5,6 +5,14 @@
   "version": "0.1.0",
   "publisher": "maartenthomassen",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MJLHThomassen/syntax-tutor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MJLHThomassen/syntax-tutor/issues"
+  },
+  "homepage": "https://github.com/MJLHThomassen/syntax-tutor#readme",
   "icon": "images/icon.png",
   "galleryBanner": {
     "color": "#1b1f2e",
@@ -187,7 +195,7 @@
     "typecheck": "tsc --noEmit",
     "check-links": "node scripts/check-links.mjs",
     "test": "npm run build && node --test test/*.test.mjs",
-    "package": "npm run typecheck && node scripts/build.mjs --production && vsce package --no-dependencies --allow-missing-repository",
+    "package": "npm run typecheck && node scripts/build.mjs --production && vsce package --no-dependencies",
     "test:vscode": "npm run build && sh scripts/integration.sh"
   },
   "dependencies": {
