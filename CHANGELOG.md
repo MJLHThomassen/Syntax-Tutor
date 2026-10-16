@@ -1,14 +1,5 @@
 # Changelog
 
-## Unreleased
-
-- **Explain This Line** command (editor context menu, `Ctrl+Shift+Alt+E` / `Cmd+Shift+Alt+E`): a side panel that explains every part of the current line or selection in reading order, says what construct the line is, and shows where plain names are declared. Hovering an entry highlights it in the editor, clicking selects it, and **Follow cursor** keeps the panel in step with the cursor.
-- Go `range` and Rust `for` loop variables are recognised as declarations.
-- Explain This Line also shows the language server's documentation for names and members (the doc string IntelliSense shows on hover) in a collapsed section. Only when there is real documentation: bare signatures are left out.
-- Explain This Line shows nesting for multi-line selections: parts inside blocks and `case`/`match` branches opened in the selection are indented under an "inside …" header, with a coloured border per level.
-- Explain This Line shows a string literal as one entry headed by the literal itself (not its quotes and text separately), while code inside `${…}` / `{…}` interpolations still gets its own entries.
-- Clicking an entry in the Explain panel scrolls to it and highlights it without changing your selection; double-click puts the cursor on it.
-
 ## 0.1.0
 
 First release. Supports Go, Rust, C, C++, C#, JavaScript and TypeScript (including JSX/TSX).
@@ -18,5 +9,11 @@ First release. Supports Go, Rust, C, C++, C#, JavaScript and TypeScript (includi
 - **Jump targets**: `return`, `break`, `continue`, `goto`, `throw`, `yield`/`await`, Go's `defer`/`fallthrough` and Rust's `?` also highlight the scope they leave or jump to, in a lighter color. Labelled loops are followed.
 - **Comments and doc comments**: hovers say what kind of comment it is (plain, doc comment, directive or `TODO`). Doc comments highlight the declaration they document, doc tags such as `@param`, `\brief` or `<param name="x">` get their own explanation, and parameter names and doc links highlight what they refer to.
 - **Bracket explanations** based on where the bracket sits in the syntax tree.
+- **Explain This Line** (editor context menu, `Ctrl+Shift+Alt+E` / `Cmd+Shift+Alt+E`): a side panel that explains every part of the current line or selection in reading order.
+  - A sentence at the top says what construct the line is, for example "This line starts the `for` statement (lines 38–40)".
+  - Plain names say where they are declared, and members say they belong to the value before the `.`. When your language extension has documentation for a name, it is available in a collapsed **IntelliSense documentation** section; bare signatures are left out.
+  - String literals are one entry, headed by the literal itself; code inside `${…}` / `{…}` interpolations gets its own entries.
+  - With several lines selected, parts inside blocks and `case`/`match` branches opened in the selection are indented under an "inside …" header, with a coloured border per level.
+  - Hovering an entry highlights it in the editor, clicking scrolls to it without changing your selection, double-clicking puts the cursor on it, and **Follow cursor** keeps the panel in step as you move.
 - Works without a language server, using tree-sitter (WASM), and alongside one in the same hover popup.
-- Settings to turn hovers and highlighting on or off, choose the highlight trigger, show or hide jump-target highlights, and pick which comments get explained (`all`, `doc` or `off`). Two toggle commands and three customizable colors.
+- Settings to turn hovers and highlighting on or off, choose the highlight trigger, show or hide jump-target highlights, and pick which comments get explained (`all`, `doc` or `off`). Three commands (Explain This Line and two toggles) and three customizable colors.
