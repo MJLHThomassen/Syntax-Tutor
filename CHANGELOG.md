@@ -15,5 +15,5 @@ First release. Supports Go, Rust, C, C++, C#, JavaScript and TypeScript (includi
   - String literals are one entry, headed by the literal itself; code inside `${…}` / `{…}` interpolations gets its own entries.
   - With several lines selected, parts inside blocks and `case`/`match` branches opened in the selection are indented under an "inside …" header, with a coloured border per level.
   - Hovering an entry highlights it in the editor, clicking scrolls to it without changing your selection, double-clicking puts the cursor on it, and **Follow cursor** keeps the panel in step as you move.
-- Works without a language server, using tree-sitter (WASM), and alongside one in the same hover popup.
-- Settings to turn hovers and highlighting on or off, choose the highlight trigger, show or hide jump-target highlights, and pick which comments get explained (`all`, `doc` or `off`). Three commands (Explain This Line and two toggles) and three customizable colors.
+- Works without a language server, using tree-sitter (WASM), and alongside one in the same hover popup. Edits are parsed incrementally, so only the changed part of a file is re-parsed.
+- Settings to turn hovers and highlighting on or off, choose the highlight trigger, set how long a hover-started highlight stays, show or hide jump-target highlights, and pick which comments get explained (`all`, `doc` or `off`). Three commands (Explain This Line and two toggles) and three customizable colors.

@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import type { Tree } from 'web-tree-sitter';
 import { explain, scopeFor, type ScopeResult, type Span } from './core/analyzer';
 import type { LanguageSpec } from './core/model';
+import { editTree } from './core/incremental';
 import { Parsers } from './core/parser';
 import { ExplainPanel } from './explainPanel';
 import { c } from './docs/c';
@@ -34,13 +35,20 @@ function config() {
     highlight: c.get<boolean>('scopeHighlight.enabled', true),
     trigger: c.get<Trigger>('scopeHighlight.trigger', 'both'),
     showRelated: c.get<boolean>('scopeHighlight.showRelated', true),
+    hoverTimeout: c.get<number>('scopeHighlight.hoverTimeout', 4),
     comments: c.get<'all' | 'doc' | 'off'>('comments', 'all'),
   };
 }
 
-/** Parsed trees per open document, reparsed when the document version changes. */
+/**
+ * Parsed trees per open document. Edits are recorded on the cached tree as they
+ * happen, so the next parse only re-parses around them; when that bookkeeping
+ * falls out of step (a missed event), the next request does a full parse.
+ */
 class TreeCache implements vscode.Disposable {
-  private readonly trees = new Map<string, { version: number; tree: Tree }>();
+  private readonly trees = new Map<string, { version: number; tree: Tree; editedTo: number; languageId: string }>();
+  /** How many parses reused an edited tree vs. started from scratch (for tests). */
+  readonly stats = { incremental: 0, full: 0 };
 
   constructor(private readonly parsers: Parsers) {}
 
@@ -48,12 +56,40 @@ class TreeCache implements vscode.Disposable {
     const key = doc.uri.toString();
     const cached = this.trees.get(key);
     if (cached?.version === doc.version) return cached.tree;
-    cached?.tree.delete();
     const spec = SPECS[doc.languageId];
-    const tree = spec && this.parsers.parse(spec.id, doc.getText());
-    if (tree) this.trees.set(key, { version: doc.version, tree });
+    // Reuse the old tree when it has every edit up to this version recorded on it.
+    const old = cached && cached.editedTo === doc.version && cached.languageId === doc.languageId ? cached.tree : undefined;
+    const tree = spec && this.parsers.parse(spec.id, doc.getText(), old);
+    if (tree) this.stats[old ? 'incremental' : 'full']++;
+    cached?.tree.delete();
+    if (tree) this.trees.set(key, { version: doc.version, tree, editedTo: doc.version, languageId: doc.languageId });
     else this.trees.delete(key);
     return tree;
+  }
+
+  /** Record a change on the cached tree, so the next get() re-parses only what changed. */
+  edit(e: vscode.TextDocumentChangeEvent): void {
+    if (!e.contentChanges.length) return; // e.g. only the dirty state changed
+    const key = e.document.uri.toString();
+    const cached = this.trees.get(key);
+    if (!cached) return;
+    if (cached.editedTo !== e.document.version - 1) {
+      // Missed a change: the old tree can't be trusted any more.
+      cached.tree.delete();
+      this.trees.delete(key);
+      return;
+    }
+    editTree(
+      cached.tree,
+      e.contentChanges.map((c) => ({
+        rangeOffset: c.rangeOffset,
+        rangeLength: c.rangeLength,
+        start: { row: c.range.start.line, column: c.range.start.character },
+        end: { row: c.range.end.line, column: c.range.end.character },
+        text: c.text,
+      })),
+    );
+    cached.editedTo = e.document.version;
   }
 
   forget(doc: vscode.TextDocument): void {
@@ -93,9 +129,24 @@ class ScopeHighlighter implements vscode.Disposable {
   current: ScopeResult | undefined;
   /** What set the current highlight, so a cursor move can replace a hover highlight. */
   source: 'cursor' | 'hover' | undefined;
+  /** Called when a hover highlight clears itself after its timeout. */
+  onHoverExpired: (() => void) | undefined;
+  private hoverTimer: ReturnType<typeof setTimeout> | undefined;
 
-  show(editor: vscode.TextEditor, scope: ScopeResult, source: 'cursor' | 'hover', showRelated: boolean): void {
+  /**
+   * `hoverTimeout` (seconds, 0 = never): a hover-started highlight clears itself after this
+   * long, because VS Code doesn't tell extensions when the mouse leaves a hover.
+   */
+  show(editor: vscode.TextEditor, scope: ScopeResult, source: 'cursor' | 'hover', showRelated: boolean, hoverTimeout = 0): void {
     if (this.editor && this.editor !== editor) this.clear();
+    clearTimeout(this.hoverTimer);
+    if (source === 'hover' && hoverTimeout > 0) {
+      this.hoverTimer = setTimeout(() => {
+        if (this.source !== 'hover') return;
+        this.clear();
+        this.onHoverExpired?.();
+      }, hoverTimeout * 1000);
+    }
     this.editor = editor;
     this.source = source;
     this.current = scope;
@@ -105,6 +156,7 @@ class ScopeHighlighter implements vscode.Disposable {
   }
 
   clear(): void {
+    clearTimeout(this.hoverTimer);
     if (this.editor) {
       for (const d of [this.primary, this.related, this.boundary]) this.editor.setDecorations(d, []);
     }
@@ -141,7 +193,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const scope = tree && scopeFor(spec, tree, { row: pos.line, column: pos.character }, sel.isEmpty, cfg);
     if (scope) highlighter.show(editor, scope, 'cursor', cfg.showRelated);
     else highlighter.clear();
-  };
+  };  // When a hover highlight times out, go back to the cursor's highlight (if any).
+  highlighter.onHoverExpired = () => highlightAtCursor(vscode.window.activeTextEditor);
+
 
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(SELECTOR, {
@@ -156,7 +210,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (cfg.highlight && cfg.trigger !== 'cursor') {
           const editor = vscode.window.visibleTextEditors.find((e) => e.document === doc);
           const scope = scopeFor(spec, tree, point, false, cfg);
-          if (editor && scope) highlighter.show(editor, scope, 'hover', cfg.showRelated);
+          if (editor && scope) highlighter.show(editor, scope, 'hover', cfg.showRelated, cfg.hoverTimeout);
           else if (highlighter.source === 'hover') highlightAtCursor(vscode.window.activeTextEditor);
         }
 
@@ -171,6 +225,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     vscode.window.onDidChangeTextEditorSelection((e) => highlightAtCursor(e.textEditor)),
     vscode.window.onDidChangeActiveTextEditor((editor) => highlightAtCursor(editor)),
+    vscode.workspace.onDidChangeTextDocument((e) => trees.edit(e)),
     vscode.workspace.onDidCloseTextDocument((doc) => trees.forget(doc)),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('syntaxTutor')) highlightAtCursor(vscode.window.activeTextEditor);
@@ -202,14 +257,14 @@ export async function activate(context: vscode.ExtensionContext) {
           const spec = SPECS[target.document.languageId];
           const tree = spec && trees.get(target.document);
           const scope = tree && scopeFor(spec, tree, span.start, false, config());
-          highlighter.show(target, scope ?? { primary: span, boundaries: [] }, 'hover', config().showRelated);
+          highlighter.show(target, scope ?? { primary: span, boundaries: [] }, 'hover', config().showRelated, config().hoverTimeout);
         },
       }, editor);
     }),
   );
 
   highlightAtCursor(vscode.window.activeTextEditor);
-  return { currentScope: () => highlighter.current };
+  return { currentScope: () => highlighter.current, parseStats: () => ({ ...trees.stats }) };
 }
 
 async function toggle(key: string, label: string): Promise<void> {

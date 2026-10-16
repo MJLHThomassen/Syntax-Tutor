@@ -126,6 +126,41 @@ async function run() {
   assert.doesNotMatch(findDocs[findIdx], /Syntax Tutor/);
   results.push(['explainLine IntelliSense for items.find', findDocs[findIdx].replace(/\s+/g, ' ').slice(0, 160)]);
 
+  // Hover highlights clear themselves after scopeHighlight.hoverTimeout seconds.
+  const cfg = vscode.workspace.getConfiguration('syntaxTutor');
+  await cfg.update('scopeHighlight.hoverTimeout', 1, vscode.ConfigurationTarget.Global);
+  const hv = await open('tour.go');
+  const quietPos = find(hv.doc, 'total += n', 1); // a plain name: no cursor highlight
+  hv.editor.selection = new vscode.Selection(quietPos, quietPos);
+  await sleep(200);
+  await hoverText(hv.doc, find(hv.doc, 'func divide'));
+  assert.ok(api.currentScope(), 'hover did not highlight');
+  await sleep(1500);
+  assert.equal(api.currentScope(), undefined, 'hover highlight did not clear after the timeout');
+  await cfg.update('scopeHighlight.hoverTimeout', undefined, vscode.ConfigurationTarget.Global);
+  results.push(['hover highlight timeout', 'cleared after 1s']);
+
+  // Edits go through incremental parsing: hovers and scopes stay right after typing.
+  const ed = await open('tour.go');
+  await hoverText(ed.doc, find(ed.doc, 'func divide')); // make sure the tree is cached
+  const statsBefore = api.parseStats();
+  const before = find(ed.doc, 'func divide');
+  await ed.editor.edit((b) => b.insert(new vscode.Position(before.line, 0), '// héllo 👋 inserted\n// and another line\n'));
+  await ed.editor.edit((b) => b.replace(new vscode.Range(find(ed.doc, 'divide(a'), find(ed.doc, 'divide(a', 6)), 'divvy'));
+  const afterPos = find(ed.doc, 'divvy(a', 2);
+  ed.editor.selection = new vscode.Selection(afterPos, afterPos);
+  await sleep(200);
+  const editedScope = api.currentScope();
+  assert.ok(editedScope, 'no scope after edits');
+  const editedText = ed.doc.getText(new vscode.Range(editedScope.primary.start.row, editedScope.primary.start.column, editedScope.primary.end.row, editedScope.primary.end.column));
+  assert.ok(editedText.startsWith('func divvy(a, b int)') && editedText.endsWith('}'), editedText);
+  assert.match(await hoverText(ed.doc, find(ed.doc, 'héllo 👋 inserted')), /Doc comment/);
+  const statsAfter = api.parseStats();
+  assert.ok(statsAfter.incremental > statsBefore.incremental, `edits were not parsed incrementally: ${JSON.stringify([statsBefore, statsAfter])}`);
+  assert.equal(statsAfter.full, statsBefore.full, 'an edit fell back to a full parse');
+  await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+  results.push(['incremental parse after edits', `${editedText.split('\n')[0]} (${api.parseStats().incremental - statsBefore.incremental} incremental parses)`]);
+
   for (const [name, value] of results) console.log(`[syntax-tutor] ${name}: ${value.split('\n').slice(0, 3).join(' ⏎ ')}`);
 }
 

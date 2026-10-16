@@ -123,6 +123,12 @@
           "default": "both",
           "description": "What triggers the scope highlight."
         },
+        "syntaxTutor.scopeHighlight.hoverTimeout": {
+          "type": "number",
+          "default": 4,
+          "minimum": 0,
+          "description": "Seconds after which a highlight started by hovering clears itself (VS Code doesn't report when the mouse leaves). The cursor's highlight then comes back. 0 keeps it until you hover something else or move the cursor."
+        },
         "syntaxTutor.scopeHighlight.showRelated": {
           "type": "boolean",
           "default": true,

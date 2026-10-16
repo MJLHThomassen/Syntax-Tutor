@@ -43,6 +43,7 @@ How to capture them:
 | `syntaxTutor.hover.enabled` | `true` | Show hover explanations |
 | `syntaxTutor.scopeHighlight.enabled` | `true` | Highlight scopes |
 | `syntaxTutor.scopeHighlight.trigger` | `both` | `cursor`, `hover` or `both` |
+| `syntaxTutor.scopeHighlight.hoverTimeout` | `4` | Seconds before a hover-started highlight clears itself (`0` = keep it) |
 | `syntaxTutor.scopeHighlight.showRelated` | `true` | Lighter highlight for jump targets and documented declarations |
 | `syntaxTutor.comments` | `all` | `all`, `doc` (skip plain comments) or `off` |
 
@@ -58,7 +59,7 @@ You can change the colors in `settings.json`:
 }
 ```
 
-A highlight started by hovering stays until you hover something else or move the cursor, because VS Code doesn't report when the mouse leaves a hover.
+VS Code doesn't report when the mouse leaves a hover, so a highlight started by hovering clears itself after `hoverTimeout` seconds (or when you hover something else or move the cursor), and the cursor's highlight comes back.
 
 ## Development
 

@@ -19,8 +19,9 @@ export class Parsers {
     return new Parsers(byLanguage);
   }
 
-  parse(languageId: string, text: string): Tree | undefined {
-    return this.byLanguage.get(languageId)?.parse(text) ?? undefined;
+  /** Parse `text`; with `oldTree` (already edited, see editTree) only the changed parts are re-parsed. */
+  parse(languageId: string, text: string, oldTree?: Tree): Tree | undefined {
+    return this.byLanguage.get(languageId)?.parse(text, oldTree) ?? undefined;
   }
 
   dispose(): void {

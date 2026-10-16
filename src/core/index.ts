@@ -4,3 +4,4 @@ export * from './analyzer';
 export * from './parser';
 export * from './lines';
 export * from './hoverDocs';
+export * from './incremental';
