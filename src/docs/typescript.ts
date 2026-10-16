@@ -12,8 +12,10 @@ import {
   jumpTarget,
   promote,
   role as jsRole,
+  javascriptOwnDocs,
 } from './javascript';
 import { typescriptComments } from './comments';
+import { operatorDocs } from './operators';
 
 const HB = 'https://www.typescriptlang.org/docs/handbook';
 const h2 = (page: string) => `${HB}/2/${page}`;
@@ -591,7 +593,7 @@ export const typescript: LanguageSpec = {
   displayName: 'TypeScript',
   wasm: 'tree-sitter-typescript.wasm',
   fence: 'ts',
-  docs: { ...javascript.docs, ...tsOnly },
+  docs: { ...operatorDocs('ts'), ...javascriptOwnDocs, ...tsOnly },
   identifierTypes: new Set([...IDENTIFIER_TYPES, 'type_identifier']),
   wrapperTypes: new Set([...WRAPPER_TYPES, 'extends_clause', 'implements_clause', 'extends_type_clause', 'accessibility_modifier', 'override_modifier', 'constraint', 'mapped_type_clause', 'asserts']),
   noScopeTokens: new Set(NO_SCOPE_TOKENS),

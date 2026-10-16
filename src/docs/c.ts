@@ -2,6 +2,7 @@ import type { Node } from 'web-tree-sitter';
 import type { DocEntry, DocTable, JumpTarget, LanguageSpec, Role } from '../core/model';
 import { ancestor, fieldOf } from '../core/nodes';
 import { cComments } from './comments';
+import { operatorDocs } from './operators';
 
 // C and C++ share most of their syntax (and their tree-sitter grammars share
 // node types), so this file holds everything both need. cpp.ts builds on it.
@@ -1190,7 +1191,7 @@ export const c: LanguageSpec = {
   displayName: 'C',
   wasm: 'tree-sitter-c.wasm',
   fence: 'c',
-  docs: cDocs,
+  docs: { ...operatorDocs('c'), ...cDocs },
   identifierTypes: new Set(['identifier', 'type_identifier', 'field_identifier', 'primitive_type', 'statement_identifier']),
   keywordNodeTypes: new Set(['preproc_directive']),
   wrapperTypes: new Set(C_WRAPPERS),

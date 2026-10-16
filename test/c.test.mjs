@@ -104,7 +104,7 @@ describe('C hovers', () => {
     assert.equal(hoverC('other\\n', 0, 0), undefined); // inside a string
     assert.match(hoverC('Hover anything').markdown, /line comment/); // comments get their own explanation
     assert.equal(hoverC('len++'), undefined);
-    assert.equal(hoverC(', int b'), undefined);
+    assert.match(hoverC(', int b').markdown, /comma/); // separators have hovers too
     assert.equal(hoverC('n;\n}'), undefined); // `*head = n;`: a plain use
   });
 

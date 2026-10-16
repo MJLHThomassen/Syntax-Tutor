@@ -62,7 +62,7 @@ describe('Go hovers', () => {
     assert.equal(hoverGo('divide by zero', 0, 0), undefined); // "divide" inside a string
     assert.match(hoverGo('Hover anything').markdown, /Doc comment[\s\S]*Documents:\*\* `package main`/); // the comment above `package` is the package doc
     assert.equal(hoverGo('total += n', 0, 0), undefined);
-    assert.equal(hoverGo('(a, b int)', 0, 2), undefined);
+    assert.match(hoverGo('(a, b int)', 0, 2).markdown, /comma/); // separators have hovers too
   });
 
   test('columns after non-ASCII text (UTF-16) line up', () => {

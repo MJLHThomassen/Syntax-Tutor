@@ -2,6 +2,7 @@ import type { Node } from 'web-tree-sitter';
 import type { DocEntry, DocTable, LanguageSpec, Role } from '../core/model';
 import { ancestor } from '../core/nodes';
 import { rustComments } from './comments';
+import { operatorDocs } from './operators';
 
 const KW = 'https://doc.rust-lang.org/std/keyword.';
 const BOOK = 'https://doc.rust-lang.org/book';
@@ -810,7 +811,7 @@ export const rust: LanguageSpec = {
   displayName: 'Rust',
   wasm: 'tree-sitter-rust.wasm',
   fence: 'rust',
-  docs,
+  docs: { ...operatorDocs('rust'), ...docs },
   identifierTypes: new Set(['identifier', 'type_identifier', 'field_identifier', 'primitive_type', 'shorthand_field_identifier']),
   wrapperTypes: new Set(['visibility_modifier', 'function_modifiers', 'else_clause', 'let_condition', 'let_chain', 'match_pattern', 'extern_modifier']),
   noScopeTokens: new Set([',', ';', '.', '"', ':', '=', '#', '\'', 'b"']),

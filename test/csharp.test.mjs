@@ -146,7 +146,7 @@ describe('C# hovers', () => {
     assert.equal(hover('nope'), undefined);
     assert.match(hover('Hover anything').markdown, /line comment/); // comments get their own explanation
     assert.equal(hover('best = item'), undefined); // a use of a local
-    assert.equal(hover('; ; i'), undefined);
+    assert.match(hover('; ; i').markdown, /semicolon/); // separators have hovers too
   });
 
   test('columns after non-ASCII text (UTF-16) line up', () => {

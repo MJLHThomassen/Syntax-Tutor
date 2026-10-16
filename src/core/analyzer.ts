@@ -88,6 +88,8 @@ function tokenDoc(spec: LanguageSpec, token: Node): { doc: DocEntry; node: Node 
   const doc =
     spec.docFor?.(token) ??
     (textMatches && parent ? lookup(spec, `${parent.type}/${text}`) : undefined) ??
+    // A closing `>` (generics, templates, JSX tags) shares the explanation of the `<` it closes.
+    (text === '>' && parent ? lookup(spec, `${parent.type}/<`) ?? lookup(spec, `${parent.type}/</`) : undefined) ??
     (textMatches ? lookup(spec, text) : undefined) ??
     lookup(spec, `#${token.type}`);
   if (doc) return { doc, node: token };

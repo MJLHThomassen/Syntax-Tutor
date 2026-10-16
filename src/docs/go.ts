@@ -2,6 +2,7 @@ import type { Node } from 'web-tree-sitter';
 import type { DocTable, LanguageSpec, Role } from '../core/model';
 import { ancestor, fieldOf } from '../core/nodes';
 import { goComments } from './comments';
+import { operatorDocs } from './operators';
 
 const SPEC = 'https://go.dev/ref/spec';
 
@@ -637,7 +638,7 @@ export const go: LanguageSpec = {
   displayName: 'Go',
   wasm: 'tree-sitter-go.wasm',
   fence: 'go',
-  docs,
+  docs: { ...operatorDocs('go'), ...docs },
   identifierTypes: new Set(['identifier', 'type_identifier', 'field_identifier', 'package_identifier', 'label_name']),
   wrapperTypes: new Set(['range_clause']),
   noScopeTokens: new Set([',', ';', '.', '"', '`', ':', '=']),

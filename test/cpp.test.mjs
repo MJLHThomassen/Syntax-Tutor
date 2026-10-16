@@ -122,7 +122,7 @@ describe('C++ hovers', () => {
     assert.equal(hoverCpp('empty"', 0, 0), undefined); // inside a string
     assert.match(hoverCpp('Hover anything').markdown, /line comment/); // comments get their own explanation
     assert.equal(hoverCpp('best = item;'), undefined);
-    assert.equal(hoverCpp(', int> &ages'), undefined);
+    assert.match(hoverCpp(', int> &ages').markdown, /comma/); // separators have hovers too
   });
 
   test('columns after non-ASCII text (UTF-16) line up', () => {

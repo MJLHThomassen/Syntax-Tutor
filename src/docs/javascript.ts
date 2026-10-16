@@ -2,6 +2,7 @@ import type { Node } from 'web-tree-sitter';
 import type { DocEntry, DocKind, DocTable, JumpTarget, LanguageSpec, Role } from '../core/model';
 import { ancestor, fieldOf } from '../core/nodes';
 import { javascriptComments } from './comments';
+import { operatorDocs } from './operators';
 
 const MDN = 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference';
 const st = (name: string) => `${MDN}/Statements/${name}`;
@@ -1187,7 +1188,7 @@ export const javascript: LanguageSpec = {
   displayName: 'JavaScript',
   wasm: 'tree-sitter-javascript.wasm',
   fence: 'js',
-  docs,
+  docs: { ...operatorDocs('js'), ...docs },
   identifierTypes: new Set(IDENTIFIER_TYPES),
   wrapperTypes: new Set(WRAPPER_TYPES),
   noScopeTokens: new Set(NO_SCOPE_TOKENS),
@@ -1198,3 +1199,6 @@ export const javascript: LanguageSpec = {
   isDeclarationName,
   acceptIdentifierDoc: acceptGlobal(role),
 };
+
+/** JavaScript's own doc table, without the shared operator docs (TypeScript layers its own operators under it). */
+export { docs as javascriptOwnDocs };

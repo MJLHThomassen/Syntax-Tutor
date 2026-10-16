@@ -2,6 +2,7 @@ import type { Node } from 'web-tree-sitter';
 import type { DocEntry, DocTable, LanguageSpec, Role } from '../core/model';
 import { ancestor, fieldOf } from '../core/nodes';
 import { csharpComments } from './comments';
+import { operatorDocs } from './operators';
 
 const REF = 'https://learn.microsoft.com/en-us/dotnet/csharp/language-reference';
 const KW = `${REF}/keywords`;
@@ -1531,7 +1532,7 @@ export const csharp: LanguageSpec = {
   displayName: 'C#',
   wasm: 'tree-sitter-c_sharp.wasm',
   fence: 'csharp',
-  docs,
+  docs: { ...operatorDocs('csharp'), ...docs },
   identifierTypes: new Set(['identifier', 'implicit_parameter']),
   // `out`/`ref`/`in`/`this` on parameters and `async`/`static` on lambdas are named `modifier` leaves;
   // `int`, `string`, ... are named `predefined_type` leaves.

@@ -24,6 +24,11 @@ export class Parsers {
     return this.byLanguage.get(languageId)?.parse(text, oldTree) ?? undefined;
   }
 
+  /** The loaded grammar for a language (node types etc.), for tests and tools. */
+  language(languageId: string): Language | undefined {
+    return this.byLanguage.get(languageId)?.language ?? undefined;
+  }
+
   dispose(): void {
     for (const parser of this.byLanguage.values()) parser.delete();
     this.byLanguage.clear();

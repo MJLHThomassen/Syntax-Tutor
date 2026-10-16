@@ -3,6 +3,7 @@ import type { DocEntry, DocTable, JumpTarget, LanguageSpec, Role } from '../core
 import { ancestor, fieldOf } from '../core/nodes';
 import { C_WRAPPERS, acceptBuiltin, buildCDocs, buildStaticDocs, cJumpTarget, cPromote, cRole, isDeclarationName, refFor, staticDoc } from './c';
 import { cppComments } from './comments';
+import { operatorDocs as sharedOperatorDocs } from './operators';
 
 const ref = refFor('cpp');
 const kw = (k: string) => ref(`keyword/${k}`);
@@ -965,7 +966,7 @@ export const cpp: LanguageSpec = {
   displayName: 'C++',
   wasm: 'tree-sitter-cpp.wasm',
   fence: 'cpp',
-  docs,
+  docs: { ...sharedOperatorDocs('cpp'), ...docs },
   identifierTypes: new Set(['identifier', 'type_identifier', 'field_identifier', 'primitive_type', 'statement_identifier', 'namespace_identifier']),
   keywordNodeTypes: new Set(['preproc_directive']),
   wrapperTypes: new Set([

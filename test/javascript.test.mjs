@@ -106,7 +106,7 @@ describe('JavaScript hovers', () => {
     assert.equal(hover('function-scoped'), undefined); // "function" inside a string
     assert.match(hover('Hover anything').markdown, /line comment/); // comments get their own explanation
     assert.equal(hover('counter += 1'), undefined); // plain use of a variable
-    assert.equal(hover('(a, b = 1)', 0, 2), undefined); // comma
+    assert.match(hover('(a, b = 1)', 0, 2).markdown, /comma/); // separators have hovers too
   });
 
   test('columns after non-ASCII text (UTF-16) line up', () => {

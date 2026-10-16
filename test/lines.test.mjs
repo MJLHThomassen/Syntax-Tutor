@@ -38,7 +38,8 @@ describe('explain this line', () => {
     const r = lines(L.go, 'total += n');
     assert.equal(r.structure, 'This line is the assignment statement (line 39).');
     assert.match(r.items[0].markdown, /`total`.*\n\nUsed here; declared on line 37 \(variable\)/);
-    assert.match(r.items[1].markdown, /declared on line 38 \(loop variable\)/);
+    assert.match(r.items[1].markdown, /\+= \(add and assign\)/); // operators are listed too
+    assert.match(r.items[2].markdown, /declared on line 38 \(loop variable\)/);
     const ts = lines(L.ts, 'if (isString(shape.name)');
     const name = ts.items.find((i) => i.text === 'name');
     assert.match(name.markdown, /A field or method of the value before the `\.`/);
@@ -55,7 +56,7 @@ describe('explain this line', () => {
     assert.equal(r.structure, 'This line is the `let` declaration (line 45).');
     assert.deepEqual(
       heads(r).filter((h) => !h.includes('brackets')).map((h) => h.split(' | ')[0]),
-      ['let', 'n', 'item', 'trim', 'parse', '::', 'i32', '?'],
+      ['let', 'n', '=', 'item', 'trim', 'parse', '::', '<', 'i32', '?'],
     );
     assert.match(r.items.find((i) => i.text === 'item').markdown, /declared on line 44 \(loop variable\)/);
   });

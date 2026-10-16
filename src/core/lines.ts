@@ -229,6 +229,15 @@ export function explainLines(
       continue;
     }
 
+    // Separators aren't worth a line each (they still have hovers); a member's own entry covers its `.`.
+    if (/^[,;.]$/.test(token.text) && !token.isNamed) continue;
+
+    // The same for the `>` closing generics, templates and JSX tags (not a `>` comparison).
+    if (token.text === '>' && !token.isNamed && token.parent && !/binary|relational|comparison/.test(token.parent.type)) {
+      const lt = token.parent.children.find((c) => !!c && (c.text === '<' || c.text === '</') && c.startIndex < token.startIndex);
+      if (lt && contains(range, spanOf(lt))) continue;
+    }
+
     // A closing bracket whose opener is in range adds nothing: the opener's entry names it.
     // (C# names its interpolation braces, so named leaves count too.)
     if (CLOSERS.has(token.text) && token.childCount === 0) {
