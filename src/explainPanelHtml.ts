@@ -41,8 +41,8 @@ export function panelHtml(cspSource: string, nonce: string): string {
   a { color: var(--vscode-textLink-foreground); }
   hr { border: 0; border-top: 1px solid var(--vscode-widget-border, rgba(128,128,128,.25)); }
   .empty { color: var(--vscode-descriptionForeground); margin-top: 16px; }
-  .ls { margin-top: 8px; padding: 6px 8px; border-left: 2px solid var(--vscode-textLink-foreground); background: var(--vscode-textBlockQuote-background, rgba(128,128,128,.08)); max-height: 16em; overflow: auto; cursor: auto; }
-  .ls-h { font-size: .85em; color: var(--vscode-descriptionForeground); margin-bottom: 2px; }
+  .ls { cursor: auto; }
+  .ls-body { margin-top: 4px; padding: 6px 8px; border-left: 2px solid var(--vscode-textLink-foreground); background: var(--vscode-textBlockQuote-background, rgba(128,128,128,.08)); max-height: 16em; overflow: auto; }
   .ls p { margin: 4px 0; }
   .ls pre { margin: 4px 0; }
 </style>
@@ -109,9 +109,10 @@ export function panelHtml(cspSource: string, nonce: string): string {
       // Docs from the language server (what IntelliSense shows on hover), arriving after the render.
       const li = document.querySelector('li[data-i="' + data.index + '"]');
       if (data.generation !== generation || !li || li.querySelector('.ls')) return;
-      const box = document.createElement('div');
+      // Collapsed: only there when the language server has real documentation; open it to read.
+      const box = document.createElement('details');
       box.className = 'ls';
-      box.innerHTML = '<div class="ls-h">IntelliSense</div>' + data.html;
+      box.innerHTML = '<summary>IntelliSense documentation</summary><div class="ls-body">' + data.html + '</div>';
       const more = li.querySelector('details');
       li.insertBefore(box, more);
       return;

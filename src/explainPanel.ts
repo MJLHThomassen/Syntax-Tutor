@@ -3,6 +3,7 @@ import type { Tree } from 'web-tree-sitter';
 import type { Options, Span } from './core/analyzer';
 import { explainLines, type LineExplanation, type LineItem } from './core/lines';
 import type { LanguageSpec } from './core/model';
+import { hasDocumentation } from './core/hoverDocs';
 import { panelHtml } from './explainPanelHtml';
 
 /** What the panel needs from the extension. */
@@ -22,7 +23,10 @@ export type ExplainResult = LineExplanation & { languageDocs: Promise<(string | 
 /** How long to wait for a language server before giving up on its docs for one part. */
 const LANGUAGE_DOC_TIMEOUT_MS = 10_000;
 
-/** Markdown from other extensions' hovers (gopls, rust-analyzer, TypeScript, ...), without our own part. */
+/**
+ * Markdown from other extensions' hovers (gopls, rust-analyzer, TypeScript, ...),
+ * without our own part, or undefined when they only give a signature.
+ */
 function hoverMarkdown(hovers: vscode.Hover[] | undefined): string | undefined {
   const parts: string[] = [];
   for (const h of hovers ?? []) {
@@ -33,7 +37,7 @@ function hoverMarkdown(hovers: vscode.Hover[] | undefined): string | undefined {
       if (clean.replace(/```\w*\s*```/g, '').trim() && !clean.includes('Syntax Tutor*') && !parts.includes(clean)) parts.push(clean);
     }
   }
-  return parts.length ? parts.join('\n\n---\n\n') : undefined;
+  return parts.some(hasDocumentation) ? parts.join('\n\n---\n\n') : undefined;
 }
 
 interface RenderedItem {
@@ -55,7 +59,7 @@ const toRange = (s: Span) => new vscode.Range(s.start.row, s.start.column, s.end
 /**
  * "Explain this line": a side panel listing every part of the current line (or
  * selected lines) with its explanation. Hovering an entry highlights it in the
- * editor; clicking selects it. With "Follow cursor" on, it updates as you move.
+ * editor; clicking scrolls to it. With "Follow cursor" on, it updates as you move.
  */
 export class ExplainPanel implements vscode.Disposable {
   private static current: ExplainPanel | undefined;

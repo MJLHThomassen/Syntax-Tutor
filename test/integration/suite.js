@@ -111,11 +111,9 @@ async function run() {
   const docs = await tsExplained.languageDocs;
   const memberIdx = tsExplained.items.findIndex((i) => i.text === 'name');
   assert.ok(memberIdx >= 0, 'no `name` member item');
-  assert.match(docs[memberIdx] ?? '', /name/, 'no language-server doc for shape.name');
-  assert.doesNotMatch(docs[memberIdx], /Syntax Tutor/);
-  results.push(['explainLine IntelliSense for shape.name', docs[memberIdx].replace(/\s+/g, ' ')]);
-  const isStringIdx = tsExplained.items.findIndex((i) => i.text === 'isString');
-  results.push(['explainLine IntelliSense for isString', (docs[isStringIdx] ?? '(none)').replace(/\s+/g, ' ')]);
+  // Undocumented: TypeScript only gives the signature `(property) Shape.name: string`, so no IntelliSense section.
+  assert.equal(docs[memberIdx], undefined, 'signature-only hover should be dropped');
+  results.push(['explainLine IntelliSense for shape.name', '(none: signature only)']);
 
   // A documented member: Array.prototype.find's own docs from TypeScript's standard library.
   const cmTs = await open('comments/comments.ts');
@@ -125,6 +123,7 @@ async function run() {
   const findDocs = await findExplained.languageDocs;
   const findIdx = findExplained.items.findIndex((i) => i.text === 'find');
   assert.match(findDocs[findIdx] ?? '', /Returns the value of the first element/, 'no doc string for items.find');
+  assert.doesNotMatch(findDocs[findIdx], /Syntax Tutor/);
   results.push(['explainLine IntelliSense for items.find', findDocs[findIdx].replace(/\s+/g, ' ').slice(0, 160)]);
 
   for (const [name, value] of results) console.log(`[syntax-tutor] ${name}: ${value.split('\n').slice(0, 3).join(' ⏎ ')}`);
