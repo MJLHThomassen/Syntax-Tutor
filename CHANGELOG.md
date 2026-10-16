@@ -4,6 +4,9 @@
 
 - **Explain This Line** command (editor context menu, `Ctrl+Shift+Alt+E` / `Cmd+Shift+Alt+E`): a side panel that explains every part of the current line or selection in reading order, says what construct the line is, and shows where plain names are declared. Hovering an entry highlights it in the editor, clicking selects it, and **Follow cursor** keeps the panel in step with the cursor.
 - Go `range` and Rust `for` loop variables are recognised as declarations.
+- Explain This Line also shows the language server's hover for names and members (signature and doc string, as IntelliSense shows it), added to each entry as soon as it arrives.
+- Explain This Line shows nesting for multi-line selections: parts inside blocks and `case`/`match` branches opened in the selection are indented under an "inside …" header, with a coloured border per level.
+- Clicking an entry in the Explain panel scrolls to it and highlights it without changing your selection; double-click puts the cursor on it.
 
 ## 0.1.0
 

@@ -139,6 +139,11 @@ function enclosed(token: Node, partner: Node | undefined): string | undefined {
   return undefined;
 }
 
+/** What an opening bracket's pair encloses, e.g. "the body of the `if` statement". */
+export function bracketContext(open: Node): string | undefined {
+  return open.parent ? enclosed(open, partnerOf(open)) : undefined;
+}
+
 export function bracketSummary(token: Node): string | undefined {
   if (!PAIRS[token.text] || token.isNamed || !token.parent) return undefined;
   const partner = partnerOf(token);

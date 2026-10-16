@@ -1,8 +1,8 @@
 import type { Node, Tree } from 'web-tree-sitter';
 import { explain, type Options, type Span } from './analyzer';
-import { ownerLabel, partnerOf } from './brackets';
+import { bracketContext, ownerLabel, partnerOf } from './brackets';
 import type { LanguageSpec } from './model';
-import { fieldOf } from './nodes';
+import { fieldOf, firstLine, lastLeaf } from './nodes';
 
 /**
  * "Explain this line": every meaningful token in a range of lines, in reading
@@ -18,6 +18,12 @@ export interface LineItem {
   markdown: string;
   /** True for fallback descriptions (plain names, literals) without a doc entry. */
   plain?: boolean;
+  /** A name (variable, function, field, method, type...): the editor's language server may know more about it. */
+  symbol?: boolean;
+  /** How many scopes opened inside the explained lines this part is nested in (0 = outermost). */
+  depth: number;
+  /** The innermost such scope: an id to group by, and a label like "the body of the `if` statement". */
+  scope?: { id: number; label: string };
 }
 
 export interface LineExplanation {
@@ -33,6 +39,55 @@ const contains = (outer: Span, inner: Span) => !before(inner.start, outer.start)
 const spanOf = (n: Node): Span => ({ start: n.startPosition, end: n.endPosition });
 
 const CLOSERS = new Set([')', ']', '}']);
+const OPENER_OF: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+
+/** Branches of a switch/match: a scope without braces of their own. */
+const CASE_LIKE = /^(expression_case|type_case|default_case|communication_case|switch_case|switch_default|switch_section|case_statement|match_arm)$/;
+
+function firstLeaf(n: Node): Node {
+  let x = n;
+  while (x.childCount > 0) x = x.child(0)!;
+  return x;
+}
+
+/**
+ * The scopes a token sits in that were opened within the explained lines:
+ * brace-delimited nodes (bodies, blocks, objects) and switch/match branches.
+ * The braces and a branch's own header (`case 1:`) belong to the outer level.
+ */
+function scopesOf(token: Node, startRow: number): { depth: number; scope?: { id: number; label: string } } {
+  let depth = 0;
+  let scope: { id: number; label: string } | undefined;
+  for (let a = token.parent; a && a.startPosition.row >= startRow && a.parent; a = a.parent) {
+    const first = firstLeaf(a);
+    const braced = first.text === '{' && !first.isNamed && first.parent?.equals(a);
+    const caseLike = CASE_LIKE.test(a.type);
+    if (!braced && !caseLike) continue;
+    let header = '';
+    if (token.equals(first)) continue;
+    if (braced && token.equals(lastLeaf(a))) continue;
+    if (caseLike) {
+      // Skip the branch header: everything up to its `:` or `=>`.
+      let headerEnd = -1;
+      for (let i = 0; i < a.childCount; i++) {
+        const c = a.child(i)!;
+        if (!c.isNamed && (c.text === ':' || c.text === '=>')) {
+          headerEnd = c.endIndex;
+          break;
+        }
+      }
+      if (token.endIndex <= headerEnd) continue;
+      header = headerEnd > a.startIndex ? a.text.slice(0, headerEnd - a.startIndex).replace(/\s+/g, ' ').trim() : '';
+    }
+    depth++;
+    if (!scope) {
+      const short = header.length > 40 ? `${header.slice(0, 39)}…` : header;
+      const label = braced ? bracketContext(first) ?? 'a block' : `the \`${short || firstLine(a, 40)}\` branch`;
+      scope = { id: a.id, label };
+    }
+  }
+  return { depth, scope };
+}
 const PUNCTUATION = /^[,;.:]$/;
 
 /** Leaf tokens overlapping rows [startRow, endRow], in order. Comments count as one token. */
@@ -73,9 +128,11 @@ function fallback(spec: LanguageSpec, tree: Tree, token: Node): string | undefin
   const name = `\`${token.text}\``;
   if (spec.identifierTypes.has(token.type)) {
     // `a.b`: b is a member of whatever a is, not a variable; don't guess a declaration by name.
-    const member = /field|property/.test(token.type) ||
-      (/^(field|property|name)$/.test(fieldOf(token) ?? '') && /member|field_expression|selector|access/.test(token.parent?.type ?? ''));
-    if (member) return `**${name}** · member\n\nA field or method of the value before the \`.\`.`;
+    const op = token.previousSibling?.text;
+    if (op === '.' || op === '?.' || op === '->') {
+      return `**${name}** · member\n\nA field or method of the value before the \`${op}\`.`;
+    }
+    if (/field|property/.test(token.type)) return `**${name}** · field\n\nThe name of a field (of a struct, class or object).`;
     const decl = declarationOf(spec, tree, token);
     if (decl) return `**${name}** · name\n\nUsed here; declared on line ${decl.node.startPosition.row + 1} (${decl.title.toLowerCase()}).`;
     return `**${name}** · name\n\nA name declared elsewhere: in another file, package or library.`;
@@ -123,7 +180,9 @@ export function explainLines(
   for (const token of tokens) {
     // A closing bracket whose opener is in range adds nothing: the opener's entry names it.
     if (CLOSERS.has(token.text) && !token.isNamed) {
-      const open = partnerOf(token);
+      // Also `}` of `${ }`: its opener is a different token that ends in `{`.
+      const opener = token.parent?.child(0);
+      const open = partnerOf(token) ?? (opener && opener.text.endsWith(OPENER_OF[token.text]) && !opener.equals(token) ? opener : undefined);
       if (open && contains(range, spanOf(open))) continue;
     }
     const at = before(token.startPosition, range.start) ? range.start : token.startPosition;
@@ -131,7 +190,13 @@ export function explainLines(
     if (e) {
       // Several tokens can share one explanation (a raw string, a comment block): keep the first.
       if (items.some((i) => sameSpan(i.span, e.span))) continue;
-      items.push({ text: token.type.endsWith('comment') ? token.text.split('\n', 1)[0] : textIn(tree, e.span), span: e.span, markdown: e.markdown });
+      items.push({
+        text: token.type.endsWith('comment') ? token.text.split('\n', 1)[0] : textIn(tree, e.span),
+        span: e.span,
+        markdown: e.markdown,
+        symbol: spec.identifierTypes.has(token.type) || undefined,
+        ...scopesOf(token, startRow),
+      });
       continue;
     }
     if (PUNCTUATION.test(token.text)) continue;
@@ -139,7 +204,14 @@ export function explainLines(
     if (!plain) continue;
     const lit = token.parent && /string|char|rune/.test(token.parent.type) && !spec.identifierTypes.has(token.type) ? token.parent : token;
     if (items.some((i) => contains(i.span, spanOf(lit)))) continue;
-    items.push({ text: lit.text, span: spanOf(lit), markdown: plain, plain: true });
+    items.push({
+      text: lit.text,
+      span: spanOf(lit),
+      markdown: plain,
+      plain: true,
+      symbol: (lit === token && spec.identifierTypes.has(token.type)) || undefined,
+      ...scopesOf(token, startRow),
+    });
   }
   const first = tokens.find((t) => t.startPosition.row >= startRow);
   return { structure: structureOf(tree, first, startRow, endRow), items };

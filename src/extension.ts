@@ -24,6 +24,9 @@ type Trigger = 'cursor' | 'hover' | 'both';
 
 const HOVER_LABEL = '🎓 *Syntax Tutor*';
 
+/** While > 0, our hover provider stays silent: the Explain panel is asking the other providers. */
+let quietHovers = 0;
+
 function config() {
   const c = vscode.workspace.getConfiguration('syntaxTutor');
   return {
@@ -143,6 +146,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(SELECTOR, {
       provideHover(doc, position) {
+        if (quietHovers > 0) return undefined;
         const spec = SPECS[doc.languageId];
         const tree = spec && trees.get(doc);
         if (!tree) return undefined;
@@ -185,6 +189,14 @@ export async function activate(context: vscode.ExtensionContext) {
         specFor: (doc) => SPECS[doc.languageId],
         treeFor: (doc) => trees.get(doc),
         options: () => config(),
+        quiet: async (fn) => {
+          quietHovers++;
+          try {
+            return await fn();
+          } finally {
+            quietHovers--;
+          }
+        },
         highlight: (target, span) => {
           // The part's own scope if it has one (a keyword's construct), else just the part itself.
           const spec = SPECS[target.document.languageId];

@@ -65,4 +65,30 @@ describe('explain this line', () => {
     assert.ok(r.items.some((i) => i.text === 'foreach'));
     assert.ok(r.items.length > 6);
   });
+
+  test('multi-line selections nest parts inside the scopes they open', () => {
+    const r = lines(L.go, 'outer:\n', 11);
+    const at = (text, nth = 0) => r.items.filter((i) => i.text === text)[nth];
+    assert.equal(at('for').depth, 0);
+    assert.equal(at('{').depth, 0); // the braces belong to the outer level
+    assert.equal(at('for', 1).depth, 1);
+    assert.equal(at('for', 1).scope.label, 'the body of the `for` statement');
+    assert.equal(at('if').depth, 2);
+    assert.equal(at('continue').depth, 3);
+    assert.equal(at('continue').scope.label, 'the body of the `if` statement');
+    assert.equal(r.items.filter((i) => i.text === '}').length, 0); // closers of blocks opened here are skipped
+  });
+
+  test('match and switch branches are scopes too, labelled by their header', () => {
+    const r = lines(L.rs, 'match self {', 4);
+    const wildcardBody = r.items.find((i) => i.scope?.label === 'the `_ =>` branch');
+    assert.ok(wildcardBody, 'no `_ =>` branch scope');
+    assert.equal(wildcardBody.depth, 2);
+    assert.equal(r.items.find((i) => i.text === '_').depth, 1); // the pattern itself is in the match body, not the branch
+  });
+
+  test('a template literal ${ } closer is not listed when its opener is', () => {
+    const r = lines(L.ts, 'if (isString(shape.name)', 2);
+    assert.equal(r.items.filter((i) => i.text === '}' && /brackets/.test(i.markdown)).length, 0);
+  });
 });

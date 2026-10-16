@@ -11,10 +11,12 @@ export function panelHtml(cspSource: string, nonce: string): string {
 <style>
   :root { --mark: var(--vscode-editor-findMatchHighlightBackground, rgba(255, 215, 0, .25)); }
   body { font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); padding: 0 16px 24px; line-height: 1.45; }
-  header { position: sticky; top: 0; background: var(--vscode-editor-background); padding: 12px 0 8px; border-bottom: 1px solid var(--vscode-panel-border, transparent); z-index: 1; }
+  header { padding: 0 0 8px; border-bottom: 1px solid var(--vscode-panel-border, transparent); }
+  .meta { position: sticky; top: 0; background: var(--vscode-editor-background); padding: 10px 0 4px; z-index: 1; }
   .meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--vscode-descriptionForeground); font-size: .9em; }
+  .hint { font-size: .85em; color: var(--vscode-descriptionForeground); margin-top: 2px; }
   .meta label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; white-space: nowrap; }
-  pre.code { font-family: var(--vscode-editor-font-family); font-size: var(--vscode-editor-font-size); background: var(--vscode-textCodeBlock-background); padding: 8px 10px; border-radius: 4px; margin: 8px 0 0; overflow-x: auto; white-space: pre; tab-size: 4; }
+  pre.code { font-family: var(--vscode-editor-font-family); font-size: var(--vscode-editor-font-size); background: var(--vscode-textCodeBlock-background); padding: 8px 10px; border-radius: 4px; margin: 8px 0 0; overflow: auto; max-height: 40vh; white-space: pre; tab-size: 4; }
   .ln { color: var(--vscode-editorLineNumber-foreground); user-select: none; display: inline-block; min-width: 3ch; margin-right: 1ch; text-align: right; }
   .tok { border-radius: 3px; cursor: pointer; border-bottom: 1px dotted var(--vscode-descriptionForeground); }
   .tok:hover, .tok.on { background: var(--mark); outline: 1px solid var(--vscode-focusBorder); }
@@ -22,6 +24,13 @@ export function panelHtml(cspSource: string, nonce: string): string {
   ol { list-style: none; padding: 0; margin: 8px 0 0; }
   li { padding: 8px 10px; margin: 6px 0; border-radius: 6px; border: 1px solid var(--vscode-widget-border, rgba(128,128,128,.25)); cursor: pointer; }
   li:hover, li.on { background: var(--vscode-list-hoverBackground); border-color: var(--vscode-focusBorder); }
+  /* Nested scopes: indented, with a left border coloured per level (like bracket pair colours). */
+  li.nested { border-left-width: 3px; }
+  li.scope { border: 0; padding: 6px 0 0; margin: 10px 0 0; cursor: default; color: var(--vscode-descriptionForeground); font-size: .9em; }
+  li.scope:hover { background: none; }
+  li.scope p { margin: 0; }
+  li.active { border-color: var(--vscode-focusBorder); box-shadow: inset 3px 0 0 var(--vscode-focusBorder); }
+  .tok.active { background: var(--mark); }
   li.plain { opacity: .8; }
   li .h p, li .s p { margin: 0; }
   li .s { margin-top: 4px; }
@@ -32,12 +41,17 @@ export function panelHtml(cspSource: string, nonce: string): string {
   a { color: var(--vscode-textLink-foreground); }
   hr { border: 0; border-top: 1px solid var(--vscode-widget-border, rgba(128,128,128,.25)); }
   .empty { color: var(--vscode-descriptionForeground); margin-top: 16px; }
+  .ls { margin-top: 8px; padding: 6px 8px; border-left: 2px solid var(--vscode-textLink-foreground); background: var(--vscode-textBlockQuote-background, rgba(128,128,128,.08)); max-height: 16em; overflow: auto; cursor: auto; }
+  .ls-h { font-size: .85em; color: var(--vscode-descriptionForeground); margin-bottom: 2px; }
+  .ls p { margin: 4px 0; }
+  .ls pre { margin: 4px 0; }
 </style>
 </head>
 <body>
-<header>
-  <div class="meta"><span id="where">Put the cursor on a line and run <b>Syntax Tutor: Explain This Line</b>.</span>
+<div class="meta"><span id="where">Put the cursor on a line and run <b>Syntax Tutor: Explain This Line</b>.</span>
   <label title="Re-explain whenever the cursor moves to another line"><input type="checkbox" id="follow"> Follow cursor</label></div>
+<header>
+  <div class="hint">Click a part to show it in the editor · double-click to put the cursor there</div>
   <pre class="code" id="code" hidden></pre>
 </header>
 <div class="structure" id="structure"></div>
@@ -47,6 +61,7 @@ export function panelHtml(cspSource: string, nonce: string): string {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => s.replace(/[&<>"]/g, (c) => '&#' + c.charCodeAt(0) + ';');
   let items = [];
+  let generation = 0;
 
   $('follow').addEventListener('change', (e) => vscode.postMessage({ type: 'follow', on: e.target.checked }));
 
@@ -57,8 +72,14 @@ export function panelHtml(cspSource: string, nonce: string): string {
     el.addEventListener('mouseenter', () => { mark(i, true); vscode.postMessage({ type: 'hover', index: i }); });
     el.addEventListener('mouseleave', () => mark(i, false));
     el.addEventListener('click', (e) => {
-      if (e.target.closest('a, summary, details')) return;
+      if (e.target.closest('a, summary, details, .ls')) return;
+      document.querySelectorAll('.active').forEach((x) => x.classList.remove('active'));
+      document.querySelectorAll('[data-i="' + i + '"]').forEach((x) => x.classList.add('active'));
       vscode.postMessage({ type: 'reveal', index: i });
+    });
+    el.addEventListener('dblclick', (e) => {
+      if (e.target.closest('a, summary, details, .ls')) return;
+      vscode.postMessage({ type: 'select', index: i });
     });
   }
 
@@ -84,7 +105,19 @@ export function panelHtml(cspSource: string, nonce: string): string {
   }
 
   window.addEventListener('message', ({ data }) => {
+    if (data.type === 'doc') {
+      // Docs from the language server (what IntelliSense shows on hover), arriving after the render.
+      const li = document.querySelector('li[data-i="' + data.index + '"]');
+      if (data.generation !== generation || !li || li.querySelector('.ls')) return;
+      const box = document.createElement('div');
+      box.className = 'ls';
+      box.innerHTML = '<div class="ls-h">IntelliSense</div>' + data.html;
+      const more = li.querySelector('details');
+      li.insertBefore(box, more);
+      return;
+    }
     if (data.type !== 'render') return;
+    generation = data.generation;
     items = data.items;
     $('follow').checked = data.follow;
     const n = data.lines.length;
@@ -94,10 +127,27 @@ export function panelHtml(cspSource: string, nonce: string): string {
     const list = $('items');
     list.innerHTML = '';
     if (!items.length) list.innerHTML = '<p class="empty">Nothing to explain on this line.</p>';
+    const levelColor = (d) => 'var(--vscode-editorBracketHighlight-foreground' + (((d - 1) % 6) + 1) + ', ' + ['#ffd700', '#da70d6', '#179fff'][(d - 1) % 3] + ')';
+    const seenScopes = new Set();
     items.forEach((it, i) => {
+      const indent = (d) => (d * 16) + 'px';
+      // A small header where a scope opened inside these lines begins ("inside the body of the if statement").
+      if (it.scopeId !== undefined && !seenScopes.has(it.scopeId)) {
+        seenScopes.add(it.scopeId);
+        const head = document.createElement('li');
+        head.className = 'scope';
+        head.style.marginLeft = indent(it.depth - 1);
+        head.innerHTML = it.scopeHtml;
+        list.appendChild(head);
+      }
       const li = document.createElement('li');
       li.dataset.i = i;
-      if (it.plain) li.className = 'plain';
+      if (it.plain) li.classList.add('plain');
+      if (it.depth > 0) {
+        li.classList.add('nested');
+        li.style.marginLeft = indent(it.depth);
+        li.style.borderLeftColor = levelColor(it.depth);
+      }
       li.innerHTML = '<div class="h">' + it.heading + '</div>' + (it.summary ? '<div class="s">' + it.summary + '</div>' : '') +
         (it.more ? '<details><summary>More</summary>' + it.more + '</details>' : '');
       wire(li, i);

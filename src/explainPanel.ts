@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { Tree } from 'web-tree-sitter';
 import type { Options, Span } from './core/analyzer';
-import { explainLines, type LineExplanation } from './core/lines';
+import { explainLines, type LineExplanation, type LineItem } from './core/lines';
 import type { LanguageSpec } from './core/model';
 import { panelHtml } from './explainPanelHtml';
 
@@ -12,6 +12,28 @@ export interface PanelDeps {
   options(): Options;
   /** Show the scope highlight for the part at `span` (as if hovered). */
   highlight(editor: vscode.TextEditor, span: Span): void;
+  /** Run `fn` while Syntax Tutor's own hover provider stays silent (no popup part, no highlight). */
+  quiet<T>(fn: () => Thenable<T>): Promise<T>;
+}
+
+/** What `Explain This Line` returns: the explanation, plus the language-server docs as they arrive (for tests). */
+export type ExplainResult = LineExplanation & { languageDocs: Promise<(string | undefined)[]> };
+
+/** How long to wait for a language server before giving up on its docs for one part. */
+const LANGUAGE_DOC_TIMEOUT_MS = 10_000;
+
+/** Markdown from other extensions' hovers (gopls, rust-analyzer, TypeScript, ...), without our own part. */
+function hoverMarkdown(hovers: vscode.Hover[] | undefined): string | undefined {
+  const parts: string[] = [];
+  for (const h of hovers ?? []) {
+    for (const c of h.contents) {
+      const md = typeof c === 'string' ? c : 'language' in c ? `\`\`\`${c.language}\n${c.value}\n\`\`\`` : c.value;
+      // TypeScript prefixes answers with "(loading...)" while its project is still loading.
+      const clean = md.replace(/^\(loading\.\.\.\)[ \t]*\n?/gm, '').trim();
+      if (clean.replace(/```\w*\s*```/g, '').trim() && !clean.includes('Syntax Tutor*') && !parts.includes(clean)) parts.push(clean);
+    }
+  }
+  return parts.length ? parts.join('\n\n---\n\n') : undefined;
 }
 
 interface RenderedItem {
@@ -21,6 +43,11 @@ interface RenderedItem {
   summary: string;
   more: string;
   plain: boolean;
+  symbol: boolean;
+  /** Nesting inside the explained lines, and the scope's id and rendered label ("inside the body of …"). */
+  depth: number;
+  scopeId?: number;
+  scopeHtml?: string;
 }
 
 const toRange = (s: Span) => new vscode.Range(s.start.row, s.start.column, s.end.row, s.end.column);
@@ -37,8 +64,10 @@ export class ExplainPanel implements vscode.Disposable {
   private items: RenderedItem[] = [];
   private follow: boolean;
   private followTimer: ReturnType<typeof setTimeout> | undefined;
+  /** Bumped on every render, so late language-server answers for an old line are dropped. */
+  private generation = 0;
 
-  static async show(context: vscode.ExtensionContext, deps: PanelDeps, editor: vscode.TextEditor): Promise<LineExplanation | undefined> {
+  static async show(context: vscode.ExtensionContext, deps: PanelDeps, editor: vscode.TextEditor): Promise<ExplainResult | undefined> {
     if (!ExplainPanel.current) ExplainPanel.current = new ExplainPanel(context, deps);
     else ExplainPanel.current.panel.reveal(vscode.ViewColumn.Beside, true);
     return ExplainPanel.current.explain(editor);
@@ -63,14 +92,14 @@ export class ExplainPanel implements vscode.Disposable {
       this.panel.onDidDispose(() => this.dispose()),
       this.panel.webview.onDidReceiveMessage((m) => this.onMessage(m)),
       vscode.window.onDidChangeTextEditorSelection((e) => {
-        if (!this.follow || !this.deps.specFor(e.textEditor.document)) return;
+        if (!this.follow || !this.deps.specFor(e.textEditor.document) || Date.now() < this.ignoreSelectionUntil) return;
         clearTimeout(this.followTimer);
         this.followTimer = setTimeout(() => void this.explain(e.textEditor), 200);
       }),
     );
   }
 
-  private async explain(editor: vscode.TextEditor): Promise<LineExplanation | undefined> {
+  private async explain(editor: vscode.TextEditor): Promise<ExplainResult | undefined> {
     const doc = editor.document;
     const spec = this.deps.specFor(doc);
     const tree = spec && this.deps.treeFor(doc);
@@ -82,7 +111,8 @@ export class ExplainPanel implements vscode.Disposable {
     const endRow = Math.max(startRow, sel.end.character === 0 && sel.end.line > sel.start.line ? sel.end.line - 1 : sel.end.line);
     const result = explainLines(spec, tree, startRow, endRow, this.deps.options());
 
-    this.items = await Promise.all(result.items.map((i) => this.renderItem(i.text, i.span, i.markdown, !!i.plain)));
+    const generation = ++this.generation;
+    this.items = await Promise.all(result.items.map((i) => this.renderItem(i)));
     const lines = [];
     for (let row = startRow; row <= endRow; row++) lines.push(doc.lineAt(row).text);
     const name = vscode.workspace.asRelativePath(doc.uri);
@@ -96,22 +126,49 @@ export class ExplainPanel implements vscode.Disposable {
       structure: result.structure ? await this.md(result.structure) : '',
       items: this.items,
       follow: this.follow,
+      generation,
     });
-    return result;
+    return { ...result, languageDocs: this.addLanguageDocs(doc, generation) };
   }
 
-  private async renderItem(text: string, span: Span, markdown: string, plain: boolean): Promise<RenderedItem> {
+  /**
+   * For names and members, ask the editor's other hover providers (the language
+   * server) what they know, the same text IntelliSense shows on hover, and add
+   * it to the entry when it arrives.
+   */
+  private addLanguageDocs(doc: vscode.TextDocument, generation: number): Promise<(string | undefined)[]> {
+    return Promise.all(
+      this.items.map(async (item, index) => {
+        if (!item.symbol) return undefined;
+        const position = new vscode.Position(item.span.start.row, item.span.start.column);
+        const ask = this.deps.quiet(() =>
+          vscode.commands.executeCommand<vscode.Hover[]>('vscode.executeHoverProvider', doc.uri, position),
+        );
+        const timeout = new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), LANGUAGE_DOC_TIMEOUT_MS));
+        const markdown = hoverMarkdown(await Promise.race([ask, timeout]).catch(() => undefined));
+        if (!markdown || generation !== this.generation) return undefined;
+        void this.panel.webview.postMessage({ type: 'doc', generation, index, html: await this.md(markdown) });
+        return markdown;
+      }),
+    );
+  }
+
+  private async renderItem(item: LineItem): Promise<RenderedItem> {
     // First paragraph: heading ("**`for`** · Go keyword"); second: summary; the rest goes behind "More".
-    const parts = markdown.split('\n\n');
+    const parts = item.markdown.split('\n\n');
     const heading = parts.shift() ?? '';
     const summary = parts.length && !parts[0].startsWith('```') && !parts[0].startsWith('---') ? parts.shift()! : '';
     return {
-      text,
-      span,
+      text: item.text,
+      span: item.span,
       heading: await this.md(heading),
       summary: summary ? await this.md(summary) : '',
       more: parts.length ? await this.md(parts.join('\n\n')) : '',
-      plain,
+      plain: !!item.plain,
+      symbol: !!item.symbol,
+      depth: item.depth,
+      scopeId: item.scope?.id,
+      scopeHtml: item.scope ? await this.md(`↳ inside ${item.scope.label}`) : undefined,
     };
   }
 
@@ -125,6 +182,9 @@ export class ExplainPanel implements vscode.Disposable {
     return `<p>${markdown.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`)}</p>`;
   }
 
+  /** Selection changes caused by the panel itself (double-click) don't re-explain. */
+  private ignoreSelectionUntil = 0;
+
   private onMessage(m: { type: string; index?: number; on?: boolean }): void {
     const item = m.index !== undefined ? this.items[m.index] : undefined;
     const editor = this.editor;
@@ -133,7 +193,16 @@ export class ExplainPanel implements vscode.Disposable {
         if (item && editor && !editor.document.isClosed) this.deps.highlight(editor, item.span);
         break;
       case 'reveal':
+        // Show the part without touching the selection, so a multi-line explanation stays put.
         if (item && editor && !editor.document.isClosed) {
+          editor.revealRange(toRange(item.span), vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+          this.deps.highlight(editor, item.span);
+        }
+        break;
+      case 'select':
+        // Double-click: put the cursor on the part. The panel keeps showing the same lines.
+        if (item && editor && !editor.document.isClosed) {
+          this.ignoreSelectionUntil = Date.now() + 500;
           void vscode.window.showTextDocument(editor.document, { viewColumn: editor.viewColumn, selection: toRange(item.span) });
         }
         break;
