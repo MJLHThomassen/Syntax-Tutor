@@ -1,0 +1,148 @@
+{
+  "name": "syntax-tutor",
+  "displayName": "Syntax Tutor",
+  "description": "Learn a programming language while you read code: hover explanations for keywords, operators and built-ins, plus marker-style highlighting of the scope a keyword belongs to. Go, Rust, C, C++, C#, JavaScript and TypeScript.",
+  "version": "0.1.0",
+  "publisher": "maartenthomassen",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1b1f2e",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Education",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:go",
+    "onLanguage:rust",
+    "onLanguage:c",
+    "onLanguage:cpp",
+    "onLanguage:csharp",
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "syntaxTutor.toggleHover",
+        "title": "Syntax Tutor: Toggle Hover Explanations"
+      },
+      {
+        "command": "syntaxTutor.toggleScopeHighlight",
+        "title": "Syntax Tutor: Toggle Scope Highlighting"
+      }
+    ],
+    "configuration": {
+      "title": "Syntax Tutor",
+      "properties": {
+        "syntaxTutor.hover.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show explanations when hovering keywords, operators, built-ins and declarations."
+        },
+        "syntaxTutor.scopeHighlight.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight the code block that belongs to the keyword or declaration name under the cursor."
+        },
+        "syntaxTutor.scopeHighlight.trigger": {
+          "type": "string",
+          "enum": [
+            "cursor",
+            "hover",
+            "both"
+          ],
+          "enumDescriptions": [
+            "Highlight when the text cursor is on a keyword or name.",
+            "Highlight when the mouse hovers a keyword or name.",
+            "Do both."
+          ],
+          "default": "both",
+          "description": "What triggers the scope highlight."
+        },
+        "syntaxTutor.scopeHighlight.showRelated": {
+          "type": "boolean",
+          "default": true,
+          "description": "For jump keywords (return, break, continue, defer, ?), also highlight the scope they jump out of, in a lighter color."
+        },
+        "syntaxTutor.comments": {
+          "type": "string",
+          "enum": [
+            "all",
+            "doc",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Explain and highlight every comment.",
+            "Only doc comments (JSDoc, XML doc, ///, Go doc comments), directives (//go:build, // @ts-expect-error, ...) and TODO-style notes; skip plain comments.",
+            "Ignore comments."
+          ],
+          "default": "all",
+          "description": "Which comments get hover explanations and highlighting. Doc comments also highlight the declaration they document, and tags like @param or <param name=\"x\"> highlight that parameter."
+        }
+      }
+    },
+    "colors": [
+      {
+        "id": "syntaxTutor.scopeBackground",
+        "description": "Marker background for the scope of the keyword under the cursor.",
+        "defaults": {
+          "dark": "#ffd70026",
+          "light": "#fff06a66",
+          "highContrast": "#ffd70040"
+        }
+      },
+      {
+        "id": "syntaxTutor.relatedScopeBackground",
+        "description": "Lighter marker background for the scope a jump keyword (return, break, ...) exits.",
+        "defaults": {
+          "dark": "#4fc1ff14",
+          "light": "#4fc1ff22",
+          "highContrast": "#4fc1ff30"
+        }
+      },
+      {
+        "id": "syntaxTutor.scopeBorder",
+        "description": "Border around the start and end tokens of the highlighted scope.",
+        "defaults": {
+          "dark": "#ffd70080",
+          "light": "#c9a800",
+          "highContrast": "#ffd700"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "check-links": "node scripts/check-links.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "package": "npm run typecheck && node scripts/build.mjs --production && vsce package --no-dependencies --skip-license --allow-missing-repository",
+    "test:vscode": "npm run build && sh scripts/integration.sh"
+  },
+  "dependencies": {
+    "web-tree-sitter": "0.25.10"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "@types/vscode": "~1.90.0",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.0",
+    "tree-sitter-c": "0.24.1",
+    "tree-sitter-c-sharp": "0.23.5",
+    "tree-sitter-cpp": "0.23.4",
+    "tree-sitter-go": "0.25.0",
+    "tree-sitter-javascript": "0.25.0",
+    "tree-sitter-rust": "0.24.0",
+    "tree-sitter-typescript": "0.23.2",
+    "typescript": "~5.9.3"
+  }
+}

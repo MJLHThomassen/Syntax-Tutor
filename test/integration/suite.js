@@ -1,0 +1,97 @@
+// Runs inside a real VS Code extension host (see scripts/integration.sh).
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const vscode = require('vscode');
+
+const samples = path.join(__dirname, '..', '..', 'samples');
+
+async function open(file) {
+  const doc = await vscode.workspace.openTextDocument(path.join(samples, file));
+  const editor = await vscode.window.showTextDocument(doc);
+  return { doc, editor };
+}
+
+function find(doc, needle, offset = 0) {
+  const i = doc.getText().indexOf(needle);
+  assert.notEqual(i, -1, needle);
+  return doc.positionAt(i + offset);
+}
+
+async function hoverText(doc, pos) {
+  const hovers = await vscode.commands.executeCommand('vscode.executeHoverProvider', doc.uri, pos);
+  return hovers.flatMap((h) => h.contents.map((c) => (typeof c === 'string' ? c : c.value))).join('\n');
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function run() {
+  const ext = vscode.extensions.all.find((e) => e.packageJSON.name === 'syntax-tutor');
+  assert.ok(ext, 'extension not found');
+
+  const go = await open('tour.go');
+  const api = await ext.activate();
+  const results = [];
+
+  results.push(['go hover func', await hoverText(go.doc, find(go.doc, 'func divide'))]);
+  assert.match(results.at(-1)[1], /^🎓 \*Syntax Tutor\*\n\n\*\*`func`\*\* · Go keyword/m);
+  results.push(['go hover <- receive', await hoverText(go.doc, find(go.doc, 'v := <-ch', 5))]);
+  assert.match(results.at(-1)[1], /receive/);
+
+  // Cursor on the function name highlights the whole function.
+  const p = find(go.doc, 'divide(a', 2);
+  go.editor.selection = new vscode.Selection(p, p);
+  await sleep(200);
+  const scope = api.currentScope();
+  assert.ok(scope, 'no scope highlighted for cursor on function name');
+  const t = go.doc.getText(new vscode.Range(scope.primary.start.row, scope.primary.start.column, scope.primary.end.row, scope.primary.end.column));
+  assert.ok(t.startsWith('func divide') && t.endsWith('}'), t);
+  results.push(['go cursor scope', t.split('\n')[0] + ' … ' + t.split('\n').at(-1)]);
+
+  // Moving to a plain spot clears it.
+  const q = find(go.doc, 'total += n', 1);
+  go.editor.selection = new vscode.Selection(q, q);
+  await sleep(200);
+  assert.equal(api.currentScope(), undefined);
+
+  const rs = await open('tour.rs');
+  results.push(['rust hover ?', await hoverText(rs.doc, find(rs.doc, '?;'))]);
+  assert.match(results.at(-1)[1], /error propagation/);
+  results.push(['rust hover println!', await hoverText(rs.doc, find(rs.doc, 'println!'))]);
+  assert.match(results.at(-1)[1], /Rust macro/);
+
+  // Hovering highlights too (trigger: "both").
+  await hoverText(rs.doc, find(rs.doc, 'match self'));
+  const hs = api.currentScope();
+  assert.ok(hs, 'no scope highlighted from hover');
+  results.push(['rust hover scope lines', `${hs.primary.start.row + 1}-${hs.primary.end.row + 1}`]);
+
+  // Every other language: a `return` hover from the right spec, via VS Code's language id.
+  for (const [file, needle, label] of [
+    ['tour.c', 'return a + b', 'C keyword'],
+    ['tour.cpp', 'return "shape"', 'C\\+\\+ keyword'],
+    ['tour.cs', 'return best', 'C# keyword'],
+    ['tour.js', 'return a + b', 'JavaScript keyword'],
+    ['tour.ts', 'return Math.PI', 'TypeScript keyword'],
+    ['tour.tsx', 'return (', 'TypeScript keyword'],
+  ]) {
+    const { doc } = await open(file);
+    const h = await hoverText(doc, find(doc, needle));
+    assert.match(h, new RegExp(`🎓 \\*Syntax Tutor\\*\\n\\n\\*\\*\`return\`\\*\\* · ${label}`), `${file} (${doc.languageId})`);
+    results.push([`${file} [${doc.languageId}] hover return`, h]);
+  }
+
+  // Comments: a JSDoc @param tag explains itself and highlights the parameter it names.
+  const cm = await open('comments/comments.js');
+  const tagPos = find(cm.doc, '@param {string}', 1);
+  const tagHover = await hoverText(cm.doc, tagPos);
+  assert.match(tagHover, /\*\*`@param`\*\* · JSDoc tag/);
+  cm.editor.selection = new vscode.Selection(tagPos, tagPos);
+  await sleep(200);
+  const tagScope = api.currentScope();
+  assert.ok(tagScope?.related, 'no parameter highlighted for @param');
+  results.push(['comments.js @param hover', tagHover]);
+
+  for (const [name, value] of results) console.log(`[syntax-tutor] ${name}: ${value.split('\n').slice(0, 3).join(' ⏎ ')}`);
+}
+
+module.exports = { run };

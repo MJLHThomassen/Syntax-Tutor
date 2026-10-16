@@ -1,0 +1,6 @@
+**
+!dist/extension.js
+!dist/wasm/**
+!package.json
+!README.md
+!images/icon.png
