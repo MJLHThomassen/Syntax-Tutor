@@ -49,6 +49,25 @@ const shorten = (text: string) => {
   return line.length > 60 || line !== text ? `${line.slice(0, 59)}…` : line;
 };
 
+/** Markdown inline code that survives backticks inside the text. */
+function codeSpan(text: string): string {
+  if (!text.includes('`')) return `\`${text}\``;
+  const fence = '`'.repeat(Math.max(...(text.match(/`+/g) ?? ['']).map((r) => r.length)) + 1);
+  return `${fence} ${text} ${fence}`;
+}
+
+/**
+ * Put the literal itself in the heading: "**`\"...\" (string literal)`** · C literal"
+ * becomes "**`\"one\\n\"`** · C string literal".
+ */
+function literalHeading(markdown: string, text: string): string {
+  const [first, ...rest] = markdown.split('\n');
+  const m = first.match(/^\*\*`+ ?(.*?) ?`+\*\* · (\S+(?: \S+)*?) (literal|syntax|operator)$/);
+  if (!m) return markdown;
+  const kind = m[1].match(/\(([^)]+)\)\s*$/)?.[1] ?? 'literal';
+  return [`**${codeSpan(text)}** · ${m[2]} ${kind}`, ...rest].join('\n');
+}
+
 /** Branches of a switch/match: a scope without braces of their own. */
 const CASE_LIKE = /^(expression_case|type_case|default_case|communication_case|switch_case|switch_default|switch_section|case_statement|match_arm)$/;
 
@@ -198,7 +217,7 @@ export function explainLines(
         const c = str.child(i)!;
         if (c.childCount === 0) e = explain(spec, tree, c.startPosition, options);
       }
-      const markdown = e?.markdown ?? fallback(spec, tree, token);
+      const markdown = e ? literalHeading(e.markdown, shorten(str.text)) : fallback(spec, tree, token);
       if (!markdown) continue;
       items.push({
         text: shorten(str.text),

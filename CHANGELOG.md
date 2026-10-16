@@ -6,7 +6,7 @@
 - Go `range` and Rust `for` loop variables are recognised as declarations.
 - Explain This Line also shows the language server's documentation for names and members (the doc string IntelliSense shows on hover) in a collapsed section. Only when there is real documentation: bare signatures are left out.
 - Explain This Line shows nesting for multi-line selections: parts inside blocks and `case`/`match` branches opened in the selection are indented under an "inside …" header, with a coloured border per level.
-- Explain This Line shows a string literal as one entry (not its quotes and text separately), while code inside `${…}` / `{…}` interpolations still gets its own entries.
+- Explain This Line shows a string literal as one entry headed by the literal itself (not its quotes and text separately), while code inside `${…}` / `{…}` interpolations still gets its own entries.
 - Clicking an entry in the Explain panel scrolls to it and highlights it without changing your selection; double-click puts the cursor on it.
 
 ## 0.1.0

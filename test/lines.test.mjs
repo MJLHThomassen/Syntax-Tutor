@@ -97,6 +97,7 @@ describe('explain this line', () => {
     const c = lines(L.c, 'const char *greeting');
     const strings = c.items.filter((i) => i.text.includes('"'));
     assert.deepEqual(strings.map((i) => i.text), ['"héllo 👋"']);
+    assert.equal(strings[0].markdown.split('\n')[0], '**`"héllo 👋"`** · C string literal'); // the literal itself, not "..."
     assert.match(strings[0].markdown, /string literal/);
     assert.ok(!strings[0].plain); // the literal's own doc, not the generic fallback
   });
@@ -105,6 +106,7 @@ describe('explain this line', () => {
     const r = lines(L.cs, 'public virtual string Describe');
     const texts = r.items.map((i) => i.text);
     assert.equal(r.items.filter((i) => i.text.startsWith('$"')).length, 1);
+    assert.match(r.items.find((i) => i.text.startsWith('$"')).markdown, /^\*\*`\$"\{GetType\(\)\.Name\} with area/);
     assert.ok(texts.includes('GetType') && texts.includes('Name') && texts.includes('Area'), texts.join(' '));
     assert.equal(texts.filter((t) => t === '}').length, 0); // hole closers are covered by their opener
   });
