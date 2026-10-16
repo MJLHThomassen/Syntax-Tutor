@@ -2,3 +2,4 @@
 // separately (dist/test/lang-<file>.js) so specs can be worked on independently.
 export * from './analyzer';
 export * from './parser';
+export * from './lines';

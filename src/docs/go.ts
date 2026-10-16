@@ -617,6 +617,10 @@ function role(node: Node, field: string | null): Role | undefined {
   if (parent.type === 'expression_list' && parent.parent?.type === 'short_var_declaration' && fieldOf(parent) === 'left') {
     return { title: 'Variable', summary: `\`:=\` declares ${name} here (or reassigns it if it already exists in this scope).` };
   }
+  if (parent.type === 'expression_list' && parent.parent?.type === 'range_clause' && fieldOf(parent) === 'left' && node.text !== '_') {
+    const loop = parent.parent.parent ?? undefined;
+    return { title: 'Loop variable', summary: `${name} gets the next value from \`range\` in each iteration of the loop.`, scope: loop };
+  }
   return undefined;
 }
 

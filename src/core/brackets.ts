@@ -81,7 +81,7 @@ export function ownerLabel(owner: Node): string {
   return label;
 }
 
-function partnerOf(token: Node): Node | undefined {
+export function partnerOf(token: Node): Node | undefined {
   const parent = token.parent;
   if (!parent) return undefined;
   const open = OPENERS.has(token.text);

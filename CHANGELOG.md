@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Explain This Line** command (editor context menu, `Ctrl+Shift+Alt+E` / `Cmd+Shift+Alt+E`): a side panel that explains every part of the current line or selection in reading order, says what construct the line is, and shows where plain names are declared. Hovering an entry highlights it in the editor, clicking selects it, and **Follow cursor** keeps the panel in step with the cursor.
+- Go `range` and Rust `for` loop variables are recognised as declarations.
+
 ## 0.1.0
 
 First release. Supports Go, Rust, C, C++, C#, JavaScript and TypeScript (including JSX/TSX).

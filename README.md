@@ -10,6 +10,7 @@ Supports **Go**, **Rust**, **C**, **C++**, **C#**, **JavaScript** and **TypeScri
 - **Scope highlighting.** Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline. For example, `func`, `fn` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop.
 - **Jump targets.** For `return`, `break`, `continue`, `goto`, `throw`, `yield`/`await` and language-specific jumps (Go's `defer`/`fallthrough`, Rust's `?`), the scope they leave or jump to gets a second, lighter highlight. Labelled loops are followed, and the hover tells you where the jump goes.
 - **Comments and doc comments.** Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`. A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
+- **Explain This Line.** Right-click a line (or select several) and choose **Syntax Tutor: Explain This Line**, or press `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). A side panel explains every part of the line in reading order: keywords, operators and brackets get their explanation, and plain names say where they are declared ("declared on line 12 as a parameter"). A sentence at the top says what the line is, for example "This line starts the `for` statement (lines 38–40)". Hover an entry to highlight it in the editor, click it to select it, and turn on **Follow cursor** to keep the panel in step as you move through the code.
 
 Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/), so it needs no language server (gopls, rust-analyzer, clangd, ...). If you do use one, both hovers appear in the same popup, and the Syntax Tutor part starts with **🎓 *Syntax Tutor***.
 
@@ -45,7 +46,7 @@ How to capture them:
 | `syntaxTutor.scopeHighlight.showRelated` | `true` | Lighter highlight for jump targets and documented declarations |
 | `syntaxTutor.comments` | `all` | `all`, `doc` (skip plain comments) or `off` |
 
-Commands: **Syntax Tutor: Toggle Hover Explanations** and **Syntax Tutor: Toggle Scope Highlighting**.
+Commands: **Syntax Tutor: Explain This Line**, **Syntax Tutor: Toggle Hover Explanations** and **Syntax Tutor: Toggle Scope Highlighting**.
 
 You can change the colors in `settings.json`:
 

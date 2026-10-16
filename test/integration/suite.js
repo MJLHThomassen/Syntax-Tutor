@@ -91,6 +91,18 @@ async function run() {
   assert.ok(tagScope?.related, 'no parameter highlighted for @param');
   results.push(['comments.js @param hover', tagHover]);
 
+  // Explain This Line: opens the side panel and returns what it explained.
+  const ex = await open('tour.go');
+  const exPos = find(ex.doc, 'for _, n := range nums {');
+  ex.editor.selection = new vscode.Selection(exPos, exPos);
+  const explained = await vscode.commands.executeCommand('syntaxTutor.explainLine');
+  assert.ok(explained, 'explainLine returned nothing');
+  assert.deepEqual(explained.items.map((i) => i.text), ['for', '_', 'n', ':=', 'range', 'nums', '{']);
+  await sleep(300);
+  const panelTab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((t) => t.input instanceof vscode.TabInputWebview);
+  assert.ok(panelTab, 'no Explain panel tab');
+  results.push(['explainLine panel', `${panelTab.label}: ${explained.structure}`]);
+
   for (const [name, value] of results) console.log(`[syntax-tutor] ${name}: ${value.split('\n').slice(0, 3).join(' ⏎ ')}`);
 }
 

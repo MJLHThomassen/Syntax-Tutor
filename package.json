@@ -65,6 +65,34 @@
       {
         "command": "syntaxTutor.toggleScopeHighlight",
         "title": "Syntax Tutor: Toggle Scope Highlighting"
+      },
+      {
+        "command": "syntaxTutor.explainLine",
+        "title": "Syntax Tutor: Explain This Line",
+        "icon": "$(mortar-board)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "syntaxTutor.explainLine",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact)$/",
+          "group": "navigation@90"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "syntaxTutor.explainLine",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact)$/"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "syntaxTutor.explainLine",
+        "key": "ctrl+shift+alt+e",
+        "mac": "cmd+shift+alt+e",
+        "when": "editorTextFocus && editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact)$/"
       }
     ],
     "configuration": {

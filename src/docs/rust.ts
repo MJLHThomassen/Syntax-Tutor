@@ -780,6 +780,8 @@ function role(node: Node, field: string | null): Role | undefined {
       };
     case 'impl_item.trait':
       return { title: 'Implemented trait', summary: `This block implements the trait ${name}.`, scope: parent };
+    case 'for_expression.pattern':
+      return { title: 'Loop variable', summary: `${name} gets the next item from the iterator in each iteration of the loop.`, scope: parent };
     case 'parameter.pattern':
       return { title: 'Parameter', summary: `${name} is a parameter: a local variable set by the caller.`, scope: parent };
     case 'let_declaration.pattern':

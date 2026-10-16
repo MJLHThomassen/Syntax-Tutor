@@ -4,6 +4,7 @@ import type { Tree } from 'web-tree-sitter';
 import { explain, scopeFor, type ScopeResult, type Span } from './core/analyzer';
 import type { LanguageSpec } from './core/model';
 import { Parsers } from './core/parser';
+import { ExplainPanel } from './explainPanel';
 import { c } from './docs/c';
 import { cpp } from './docs/cpp';
 import { csharp } from './docs/csharp';
@@ -174,6 +175,25 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('syntaxTutor.toggleScopeHighlight', () =>
       toggle('scopeHighlight.enabled', 'Scope highlighting'),
     ),
+    vscode.commands.registerCommand('syntaxTutor.explainLine', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || !SPECS[editor.document.languageId]) {
+        void vscode.window.showInformationMessage('Syntax Tutor: open a Go, Rust, C, C++, C#, JavaScript or TypeScript file first.');
+        return undefined;
+      }
+      return ExplainPanel.show(context, {
+        specFor: (doc) => SPECS[doc.languageId],
+        treeFor: (doc) => trees.get(doc),
+        options: () => config(),
+        highlight: (target, span) => {
+          // The part's own scope if it has one (a keyword's construct), else just the part itself.
+          const spec = SPECS[target.document.languageId];
+          const tree = spec && trees.get(target.document);
+          const scope = tree && scopeFor(spec, tree, span.start, false, config());
+          highlighter.show(target, scope ?? { primary: span, boundaries: [] }, 'hover', config().showRelated);
+        },
+      }, editor);
+    }),
   );
 
   highlightAtCursor(vscode.window.activeTextEditor);
