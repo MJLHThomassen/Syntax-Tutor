@@ -13,6 +13,7 @@ before(async () => {
   L.rs = await load('rust', 'rust', 'tour.rs');
   L.ts = await load('typescript', 'typescript', 'tour.ts');
   L.cs = await load('csharp', 'csharp', 'tour.cs');
+  L.c = await load('c', 'c', 'tour.c');
 });
 
 /** Explain the line(s) starting at the line containing `needle`. */
@@ -90,5 +91,21 @@ describe('explain this line', () => {
   test('a template literal ${ } closer is not listed when its opener is', () => {
     const r = lines(L.ts, 'if (isString(shape.name)', 2);
     assert.equal(r.items.filter((i) => i.text === '}' && /brackets/.test(i.markdown)).length, 0);
+  });
+
+  test('a string literal is one entry, not its quotes and text separately', () => {
+    const c = lines(L.c, 'const char *greeting');
+    const strings = c.items.filter((i) => i.text.includes('"'));
+    assert.deepEqual(strings.map((i) => i.text), ['"héllo 👋"']);
+    assert.match(strings[0].markdown, /string literal/);
+    assert.ok(!strings[0].plain); // the literal's own doc, not the generic fallback
+  });
+
+  test('code inside an interpolation is still explained', () => {
+    const r = lines(L.cs, 'public virtual string Describe');
+    const texts = r.items.map((i) => i.text);
+    assert.equal(r.items.filter((i) => i.text.startsWith('$"')).length, 1);
+    assert.ok(texts.includes('GetType') && texts.includes('Name') && texts.includes('Area'), texts.join(' '));
+    assert.equal(texts.filter((t) => t === '}').length, 0); // hole closers are covered by their opener
   });
 });

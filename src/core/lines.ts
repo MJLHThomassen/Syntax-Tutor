@@ -41,6 +41,14 @@ const spanOf = (n: Node): Span => ({ start: n.startPosition, end: n.endPosition 
 const CLOSERS = new Set([')', ']', '}']);
 const OPENER_OF: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
 
+/** String and character literals, whose quotes, prefixes and text are separate tokens but one thing to explain. */
+const STRING_NODE = /^(.*_)?(string|char|rune|character)(_literal|_expression)?$/;
+
+const shorten = (text: string) => {
+  const line = text.split('\n', 1)[0];
+  return line.length > 60 || line !== text ? `${line.slice(0, 59)}…` : line;
+};
+
 /** Branches of a switch/match: a scope without braces of their own. */
 const CASE_LIKE = /^(expression_case|type_case|default_case|communication_case|switch_case|switch_default|switch_section|case_statement|match_arm)$/;
 
@@ -177,9 +185,34 @@ export function explainLines(
   const range: Span = { start: { row: startRow, column: 0 }, end: { row: endRow, column: Number.MAX_SAFE_INTEGER } };
   const items: LineItem[] = [];
   const tokens = leaves(tree, startRow, endRow);
+  const literalsDone = new Set<number>();
   for (const token of tokens) {
+    // The pieces of a string literal (`"`, the text, `"`, a `$` or `r#` prefix) are one entry for the
+    // whole literal. Code inside an interpolation has other parents and is explained on its own.
+    const str = token.parent && STRING_NODE.test(token.parent.type) && token.parent.type !== 'concatenated_string' ? token.parent : undefined;
+    if (str) {
+      if (literalsDone.has(str.id)) continue;
+      literalsDone.add(str.id);
+      let e: { markdown: string } | undefined;
+      for (let i = 0; i < str.childCount && !e; i++) {
+        const c = str.child(i)!;
+        if (c.childCount === 0) e = explain(spec, tree, c.startPosition, options);
+      }
+      const markdown = e?.markdown ?? fallback(spec, tree, token);
+      if (!markdown) continue;
+      items.push({
+        text: shorten(str.text),
+        span: spanOf(str),
+        markdown,
+        plain: !e || undefined,
+        ...scopesOf(token, startRow),
+      });
+      continue;
+    }
+
     // A closing bracket whose opener is in range adds nothing: the opener's entry names it.
-    if (CLOSERS.has(token.text) && !token.isNamed) {
+    // (C# names its interpolation braces, so named leaves count too.)
+    if (CLOSERS.has(token.text) && token.childCount === 0) {
       // Also `}` of `${ }`: its opener is a different token that ends in `{`.
       const opener = token.parent?.child(0);
       const open = partnerOf(token) ?? (opener && opener.text.endsWith(OPENER_OF[token.text]) && !opener.equals(token) ? opener : undefined);
@@ -203,7 +236,7 @@ export function explainLines(
     const plain = fallback(spec, tree, token);
     if (!plain) continue;
     const lit = token.parent && /string|char|rune/.test(token.parent.type) && !spec.identifierTypes.has(token.type) ? token.parent : token;
-    if (items.some((i) => contains(i.span, spanOf(lit)))) continue;
+    if (items.some((i) => sameSpan(i.span, spanOf(lit)))) continue;
     items.push({
       text: lit.text,
       span: spanOf(lit),
