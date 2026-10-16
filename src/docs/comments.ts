@@ -129,7 +129,7 @@ const rustTags: Record<string, TagDoc> = {
   '# examples': {
     title: '# Examples',
     summary: 'The conventional **Examples** section. Code blocks here are compiled and run as tests by `cargo test` (doc tests), so examples stay correct.',
-    link: `${RUSTDOC}#examples`,
+    link: 'https://doc.rust-lang.org/rustdoc/write-documentation/what-to-include.html#examples',
   },
   '# panics': {
     title: '# Panics',
@@ -189,7 +189,7 @@ export const rustComments: CommentStyle = {
       category: 'note',
       title: '`// SAFETY:` comment',
       summary: 'Convention: right above an `unsafe` block, explain **why** the code is sound (which invariants make it OK). Clippy\'s `undocumented_unsafe_blocks` lint can require it.',
-      link: 'https://rust-lang.github.io/rust-clippy/master/index.html#undocumented_unsafe_blocks',
+      link: 'https://clippy.rust-lang.org/master/index.html#undocumented_unsafe_blocks',
     },
     todo,
     lineComment(),
@@ -283,7 +283,7 @@ const jsKinds = (ts: boolean): CommentKind[] => [
     category: 'directive',
     title: 'ESLint directive',
     summary: 'Configures the ESLint linter: `eslint-disable-next-line rule-name` skips a rule on the next line, `/* eslint-disable */` for the rest of the file. Name the rule and say why.',
-    link: 'https://eslint.org/docs/latest/use/configure/rules#disabling-rules',
+    link: 'https://eslint.org/docs/latest/use/configure/rules#disable-rules',
   },
   {
     test: /^\/\/\s*prettier-ignore\b/,
@@ -456,7 +456,7 @@ export const csharpComments: CommentStyle = {
     },
     todo,
     lineComment(),
-    blockComment('Block comments do not nest. A comment starting with `/**` is an XML doc comment, but `///` is the usual style.', 'https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/lexical-structure#653-comments'),
+    blockComment('Block comments do not nest. A comment starting with `/**` is an XML doc comment, but `///` is the usual style.', 'https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/language-specification/lexical-structure#633-comments'),
   ],
   tags: { xmldoc: xmlTags },
   formatNames: FORMAT_NAMES,

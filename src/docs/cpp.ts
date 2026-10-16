@@ -265,7 +265,7 @@ const cppDocs: DocTable = {
     kind: 'syntax',
     title: '<...> (template arguments)',
     summary: 'Fills in a template\'s parameters, e.g. `std::vector<int>` is a vector of `int`s. Often the compiler can deduce them for function templates.',
-    link: lang('template_arguments'),
+    link: lang('template_parameters') + '#Template_arguments',
   },
   concept: {
     kind: 'keyword',

@@ -519,9 +519,9 @@ const docs: DocTable = {
   max: { kind: 'function', summary: 'Returns the largest of its arguments (numbers or strings). Built in since Go 1.21.', link: `${SPEC}#Min_and_max` },
   print: { kind: 'function', summary: 'Low-level debug print to stderr. Use `fmt.Print` in real code.', link: `${SPEC}#Bootstrapping` },
   println: { kind: 'function', summary: 'Low-level debug print to stderr. Use `fmt.Println` in real code.', link: `${SPEC}#Bootstrapping` },
-  complex: { kind: 'function', summary: 'Builds a complex number from a real and an imaginary part.', link: `${SPEC}#Manipulating_complex_numbers` },
-  real: { kind: 'function', summary: 'The real part of a complex number.', link: `${SPEC}#Manipulating_complex_numbers` },
-  imag: { kind: 'function', summary: 'The imaginary part of a complex number.', link: `${SPEC}#Manipulating_complex_numbers` },
+  complex: { kind: 'function', summary: 'Builds a complex number from a real and an imaginary part.', link: `${SPEC}#Complex_numbers` },
+  real: { kind: 'function', summary: 'The real part of a complex number.', link: `${SPEC}#Complex_numbers` },
+  imag: { kind: 'function', summary: 'The imaginary part of a complex number.', link: `${SPEC}#Complex_numbers` },
 
   // ----------------------------------------------------------- builtin types
   error: {

@@ -208,7 +208,7 @@ const docs: DocTable = {
     title: 'static (lambda)',
     summary: 'A `static` lambda may not capture local variables or `this`. The compiler checks this, which avoids hidden allocations.',
     example: 'Func<int, int> twice = static x => x * 2;',
-    link: op('lambda-expressions#static-lambdas'),
+    link: op('lambda-expressions'),
   },
   readonly: {
     kind: 'keyword',
@@ -498,7 +498,7 @@ const docs: DocTable = {
     title: 'new { ... } (anonymous type)',
     summary: 'Creates an object of an **anonymous type** with read-only properties. Handy in LINQ `select` clauses; the type has no name you can write, so use `var`.',
     example: 'var item = new { Name = "pen", Price = 1.5 };\nConsole.WriteLine(item.Name);',
-    link: `${GUIDE}/fundamentals/types/anonymous-types`,
+    link: `${GUIDE}/programming-guide/classes-and-structs/anonymous-types`,
   },
   'array_creation_expression/new': {
     kind: 'keyword',
@@ -599,7 +599,7 @@ const docs: DocTable = {
     title: 'when (exception filter)',
     summary: 'An **exception filter**: this `catch` only handles the exception if the condition is true. Otherwise the exception keeps going up as if this catch weren\'t there.',
     example: 'catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)\n{\n    return null;\n}',
-    link: st('exception-handling-statements#exception-filters'),
+    link: st('exception-handling-statements#a-when-exception-filter'),
   },
   for: {
     kind: 'keyword',
@@ -792,13 +792,13 @@ const docs: DocTable = {
     summary: 'Converts to a reference or nullable type, giving **`null` instead of throwing** if the value is not of that type.',
     details: 'Usually `if (x is T t)` is nicer, because it also checks the result.',
     example: 'var shape = obj as Shape;\nif (shape != null) { ... }',
-    link: op('type-testing-and-cast#as-operator'),
+    link: op('type-testing-and-cast#the-as-operator'),
   },
   typeof: {
     kind: 'keyword',
     summary: 'Gets the `System.Type` object for a type name, known at compile time. For the run-time type of a value use `value.GetType()`.',
     example: 'Type t = typeof(List<int>);',
-    link: op('type-testing-and-cast#typeof-operator'),
+    link: op('type-testing-and-cast#the-typeof-operator'),
   },
   nameof: {
     kind: 'keyword',
@@ -839,7 +839,7 @@ const docs: DocTable = {
     title: '_ (discard)',
     summary: 'A **discard**: a placeholder for a value you don\'t need. In a pattern or switch arm, `_` matches anything.',
     example: '_ = DoSomething();          // ignore the result\nvar label = n switch { 0 => "zero", _ => "other" };',
-    link: `${GUIDE}/fundamentals/functional/discards`,
+    link: `${GUIDE}/fundamentals/patterns/discards`,
   },
 
   // ------------------------------------------------------------- LINQ
@@ -1018,7 +1018,7 @@ const docs: DocTable = {
     summary: 'An **expression-bodied member**: a method, property or accessor whose body is a single expression. `=> expr` is short for `{ return expr; }`.',
     details: 'For a property, `int Count => items.Count;` is a getter-only property computed on every read. Compare `int Count { get; } = items.Count;`, which is computed once.',
     example: 'public double Area() => Width * Height;\npublic string Name => $"{First} {Last}";',
-    link: `${GUIDE}/programming-guide/statements-expressions-operators/expression-bodied-members`,
+    link: `${REF}/operators/lambda-operator`,
   },
   'switch_expression_arm/=>': {
     kind: 'operator',

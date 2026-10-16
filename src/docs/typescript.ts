@@ -18,7 +18,14 @@ import { typescriptComments } from './comments';
 const HB = 'https://www.typescriptlang.org/docs/handbook';
 const h2 = (page: string) => `${HB}/2/${page}`;
 const UTIL = `${HB}/utility-types.html`;
-const util = (name: string) => `${UTIL}#${name.toLowerCase()}type`;
+const UTIL_ANCHORS: Record<string, string> = {
+  Record: 'recordkeys-type',
+  Pick: 'picktype-keys',
+  Omit: 'omittype-keys',
+  Exclude: 'excludeuniontype-excludedmembers',
+  Extract: 'extracttype-union',
+};
+const util = (name: string) => `${UTIL}#${UTIL_ANCHORS[name] ?? `${name.toLowerCase()}type`}`;
 
 const VISIBILITY = 'Only checked by the compiler: at runtime the member is an ordinary property. For real runtime privacy use JavaScript `#private` fields.';
 

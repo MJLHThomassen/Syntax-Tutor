@@ -283,7 +283,7 @@ const docs: DocTable = {
     title: 'let ... else',
     summary: 'If the pattern doesn\'t match, the `else` block runs; it must diverge (`return`, `break`, `panic!`...). Great for early exits.',
     example: 'let Some(user) = find(id) else {\n    return Err(NotFound);\n};',
-    link: `${REF}/statements.html#let-else-statements`,
+    link: 'https://doc.rust-lang.org/rust-by-example/flow_control/let_else.html',
   },
   match: {
     kind: 'keyword',

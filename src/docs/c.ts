@@ -224,12 +224,12 @@ export function buildCDocs(lang: Lang): DocTable {
       kind: 'keyword',
       summary: 'A promise on a pointer: while it is in use, the memory it points to is accessed only through it (no other pointer aliases it). Lets the compiler optimize.',
       example: 'void *memcpy(void *restrict dst, const void *restrict src, size_t n);',
-      link: ref('language/restrict'),
+      link: 'https://en.cppreference.com/w/c/language/restrict',
     },
     _Atomic: {
       kind: 'keyword',
       summary: 'Makes a type atomic: reads and writes are indivisible, so threads can share it safely without a lock.',
-      link: ref('language/atomic'),
+      link: 'https://en.cppreference.com/w/c/language/atomic',
     },
     _Noreturn: {
       kind: 'keyword',
@@ -250,7 +250,7 @@ export function buildCDocs(lang: Lang): DocTable {
       kind: 'keyword',
       summary: 'Compile-time selection by type: picks the branch whose type matches the controlling expression. Used to build "overloaded" macros.',
       example: '#define abs_any(x) _Generic((x), int: abs, double: fabs)(x)',
-      link: ref('language/generic'),
+      link: 'https://en.cppreference.com/w/c/language/generic',
     },
     _Static_assert: {
       kind: 'keyword',
@@ -268,7 +268,7 @@ export function buildCDocs(lang: Lang): DocTable {
       kind: 'keyword',
       summary: 'The type of an expression (C23, previously a GCC extension). Handy in macros.',
       example: 'typeof(x) copy = x;',
-      link: ref('language/typeof'),
+      link: 'https://en.cppreference.com/w/c/language/typeof',
     },
     constexpr: {
       kind: 'keyword',
@@ -500,7 +500,7 @@ export function buildCDocs(lang: Lang): DocTable {
     strcat: { kind: 'function', summary: 'Appends one string to the end of another. The destination must have room for both.', link: ref('string/byte/strcat') },
     strchr: { kind: 'function', summary: 'Finds the first occurrence of a character in a string; returns a pointer to it or `NULL`.', link: ref('string/byte/strchr') },
     strstr: { kind: 'function', summary: 'Finds the first occurrence of a substring; returns a pointer to it or `NULL`.', link: ref('string/byte/strstr') },
-    strdup: { kind: 'function', summary: 'Returns a `malloc`ed copy of a string (POSIX, standard since C23). Free it when done.', link: ref('string/byte/strdup') },
+    strdup: { kind: 'function', summary: 'Returns a `malloc`ed copy of a string (POSIX, standard since C23). Free it when done.', link: 'https://en.cppreference.com/w/c/string/byte/strdup' },
     atoi: { kind: 'function', summary: 'Converts a string to an `int`. Returns 0 on bad input, indistinguishable from "0"; `strtol` lets you detect errors.', link: ref('string/byte/atoi') },
     strtol: { kind: 'function', summary: 'Converts a string to a `long`, telling you (via `endptr`) where the number ended, so you can detect bad input.', link: ref('string/byte/strtol') },
     exit: { kind: 'function', summary: 'Ends the program immediately with the given status (`EXIT_SUCCESS`/`EXIT_FAILURE`), after flushing open files.', link: ref('program/exit', 'utility/program/exit') },
