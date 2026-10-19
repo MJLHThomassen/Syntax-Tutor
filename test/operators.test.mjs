@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, test } from 'node:test';
+import { readWasm } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { Parsers, explain } = require('../dist/test/core.js');
@@ -25,14 +26,12 @@ const OPERATOR = /^[^\w\s"'`\[\](){}]+$/;
 /** Comment delimiters are explained by the comment support, not as operators. */
 const COMMENT_MARKERS = new Set(['//', '/*', '*/']);
 
-const wasm = new URL('../dist/wasm/', import.meta.url).pathname;
-
 describe('operator coverage', () => {
   for (const [file, exp, samples] of LANGS) {
     const spec = require(`../dist/test/lang-${file}.js`)[exp];
 
     test(`${exp}: every operator token in the grammar has a doc`, async () => {
-      const parsers = await Parsers.load(wasm, [spec]);
+      const parsers = await Parsers.load(readWasm, [spec]);
       const lang = parsers.language(spec.id);
       const keys = Object.keys(spec.docs);
       const missing = [];
@@ -46,7 +45,7 @@ describe('operator coverage', () => {
     });
 
     test(`${exp}: every operator in the samples is explained on hover`, async () => {
-      const parsers = await Parsers.load(wasm, [spec]);
+      const parsers = await Parsers.load(readWasm, [spec]);
       const unexplained = [];
       for (const sample of samples) {
         const src = readFileSync(new URL(`../samples/${sample}`, import.meta.url), 'utf8');

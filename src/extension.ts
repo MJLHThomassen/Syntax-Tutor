@@ -1,4 +1,3 @@
-import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { Tree } from 'web-tree-sitter';
 import { explain, scopeFor, type ScopeResult, type Span } from './core/analyzer';
@@ -65,6 +64,13 @@ class TreeCache implements vscode.Disposable {
     if (tree) this.trees.set(key, { version: doc.version, tree, editedTo: doc.version, languageId: doc.languageId });
     else this.trees.delete(key);
     return tree;
+  }
+
+  /** Like get(), but first loads the document's grammar if it isn't loaded yet. */
+  async ready(doc: vscode.TextDocument): Promise<Tree | undefined> {
+    const spec = SPECS[doc.languageId];
+    if (!spec || !(await this.parsers.ensure(spec.id))) return undefined;
+    return this.get(doc);
   }
 
   /** Record a change on the cached tree, so the next get() re-parses only what changed. */
@@ -173,7 +179,12 @@ class ScopeHighlighter implements vscode.Disposable {
 }
 
 export async function activate(context: vscode.ExtensionContext) {
-  const parsers = await Parsers.load(path.join(context.extensionPath, 'dist', 'wasm'), ALL_SPECS);
+  // vscode.workspace.fs reads the bundled files both on desktop and on the web (vscode.dev).
+  const wasmDir = vscode.Uri.joinPath(context.extensionUri, 'dist', 'wasm');
+  const read = async (file: string) => vscode.workspace.fs.readFile(vscode.Uri.joinPath(wasmDir, file));
+  // Grammars of the documents already open load now; the others when a document needs them.
+  const open = new Set(vscode.workspace.textDocuments.map((doc) => SPECS[doc.languageId]).filter((spec) => spec !== undefined));
+  const parsers = await Parsers.load(read, ALL_SPECS, [...open]);
   const trees = new TreeCache(parsers);
   const highlighter = new ScopeHighlighter();
   context.subscriptions.push(trees, highlighter, { dispose: () => parsers.dispose() });
@@ -183,6 +194,11 @@ export async function activate(context: vscode.ExtensionContext) {
     const spec = editor && SPECS[editor.document.languageId];
     if (!editor || !spec || !cfg.highlight || cfg.trigger === 'hover') {
       if (highlighter.source === 'cursor' || !cfg.highlight) highlighter.clear();
+      return;
+    }
+    if (!parsers.has(spec.id)) {
+      // Highlight once the grammar has loaded.
+      void parsers.ensure(spec.id).then((ok) => ok && highlightAtCursor(vscode.window.activeTextEditor));
       return;
     }
     const tree = trees.get(editor.document);
@@ -199,10 +215,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(SELECTOR, {
-      provideHover(doc, position) {
+      async provideHover(doc, position) {
         if (quietHovers > 0) return undefined;
         const spec = SPECS[doc.languageId];
-        const tree = spec && trees.get(doc);
+        const tree = spec && (await trees.ready(doc));
         if (!tree) return undefined;
         const cfg = config();
         const point = { row: position.line, column: position.character };
@@ -242,7 +258,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
       return ExplainPanel.show(context, {
         specFor: (doc) => SPECS[doc.languageId],
-        treeFor: (doc) => trees.get(doc),
+        treeFor: (doc) => trees.ready(doc),
         options: () => config(),
         quiet: async (fn) => {
           quietHovers++;

@@ -9,7 +9,7 @@ import { panelHtml } from './explainPanelHtml';
 /** What the panel needs from the extension. */
 export interface PanelDeps {
   specFor(doc: vscode.TextDocument): LanguageSpec | undefined;
-  treeFor(doc: vscode.TextDocument): Tree | undefined;
+  treeFor(doc: vscode.TextDocument): Promise<Tree | undefined>;
   options(): Options;
   /** Show the scope highlight for the part at `span` (as if hovered). */
   highlight(editor: vscode.TextEditor, span: Span): void;
@@ -106,7 +106,7 @@ export class ExplainPanel implements vscode.Disposable {
   private async explain(editor: vscode.TextEditor): Promise<ExplainResult | undefined> {
     const doc = editor.document;
     const spec = this.deps.specFor(doc);
-    const tree = spec && this.deps.treeFor(doc);
+    const tree = spec && (await this.deps.treeFor(doc));
     if (!spec || !tree) return undefined;
     this.editor = editor;
     const sel = editor.selection;

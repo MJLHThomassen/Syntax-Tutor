@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, test } from 'node:test';
+import { readWasm } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { Parsers, editTree } = require('../dist/test/core.js');
@@ -87,7 +88,7 @@ describe('incremental parsing', () => {
   for (const [file, exp, sample] of LANGS) {
     test(`${exp}: edited + re-parsed tree equals a full parse`, async () => {
       const spec = require(`../dist/test/lang-${file}.js`)[exp];
-      const parsers = await Parsers.load(new URL('../dist/wasm', import.meta.url).pathname, [spec]);
+      const parsers = await Parsers.load(readWasm, [spec]);
       let text = readFileSync(new URL(`../samples/${sample}`, import.meta.url), 'utf8');
       let tree = parsers.parse(spec.id, text);
       assert.equal(tree.rootNode.hasError, false, 'sample should parse cleanly');

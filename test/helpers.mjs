@@ -2,10 +2,14 @@
 // spec and query hovers/scopes by searching for snippets of the sample.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { Parsers, explain, scopeFor } = require('../dist/test/core.js');
+
+/** Reads a file from dist/wasm, for Parsers.load. */
+export const readWasm = (file) => readFile(new URL(`../dist/wasm/${file}`, import.meta.url));
 
 /** Position of the `nth` occurrence of `needle` (plus `offset` chars), in UTF-16 columns like VS Code. */
 export function at(src, needle, nth = 0, offset = 0) {
@@ -37,7 +41,7 @@ export function text(src, span) {
 export async function load(file, exportName, sample) {
   const spec = require(`../dist/test/lang-${file}.js`)[exportName];
   assert.ok(spec, `${exportName} not exported from lang-${file}.js`);
-  const parsers = await Parsers.load(new URL('../dist/wasm', import.meta.url).pathname, [spec]);
+  const parsers = await Parsers.load(readWasm, [spec]);
   const src = readFileSync(new URL(`../samples/${sample}`, import.meta.url), 'utf8');
   const tree = parsers.parse(spec.id, src);
   return {

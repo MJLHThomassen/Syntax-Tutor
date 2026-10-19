@@ -64,6 +64,7 @@
     "onLanguage:typescriptreact"
   ],
   "main": "./dist/extension.js",
+  "browser": "./dist/web/extension.js",
   "contributes": {
     "commands": [
       {
@@ -196,7 +197,8 @@
     "check-links": "node scripts/check-links.mjs",
     "test": "npm run build && node --test test/*.test.mjs",
     "package": "npm run typecheck && node scripts/build.mjs --production && vsce package --no-dependencies",
-    "test:vscode": "npm run build && sh scripts/integration.sh"
+    "test:vscode": "npm run build && sh scripts/integration.sh",
+    "web": "npm run build && vscode-test-web --extensionDevelopmentPath=. samples"
   },
   "dependencies": {
     "web-tree-sitter": "0.25.10"
@@ -204,6 +206,7 @@
   "devDependencies": {
     "@types/node": "^20.19.0",
     "@types/vscode": "~1.90.0",
+    "@vscode/test-web": "^0.0.81",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.25.0",
     "tree-sitter-c": "0.24.1",

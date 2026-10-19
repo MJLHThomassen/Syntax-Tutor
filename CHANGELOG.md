@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Works in VS Code for the web**: vscode.dev and github.dev (press `.` on a GitHub repository).
+- Grammars load the first time a language is needed, instead of all at startup. This makes startup faster, and in the browser only the grammars you use are downloaded.
+
 ## 0.1.0
 
 First release. Supports Go, Rust, C, C++, C#, JavaScript and TypeScript (including JSX/TSX).

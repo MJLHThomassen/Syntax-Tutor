@@ -53,6 +53,8 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
 Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/), so it needs no language server (gopls, rust-analyzer, clangd, ...). If you do use one, both hovers appear in the same popup, and the Syntax Tutor part starts with **🎓 *Syntax Tutor***.
 
+It also works in VS Code for the web, on [vscode.dev](https://vscode.dev) and [github.dev](https://github.dev) (press `.` on any GitHub repository), so you can use it while reading code on GitHub.
+
 ## Commands
 
 Run these from the Command Palette (`Ctrl+Shift+P`, `Cmd+Shift+P` on Mac).
@@ -110,6 +112,12 @@ npm run package
 code --install-extension syntax-tutor-0.1.0.vsix
 ```
 
+To try the web version (as on vscode.dev), run this and open http://localhost:3000. It downloads VS Code for the web the first time.
+
+```bash
+npm run web
+```
+
 ## How it works
 
 | File | What it does |
@@ -118,7 +126,7 @@ code --install-extension syntax-tutor-0.1.0.vsix
 | `src/core/analyzer.ts` | Finds the token under the cursor, picks its doc entry, and works out its scope |
 | `src/core/comments.ts`, `src/docs/comments.ts` | Comment blocks, doc comments and their tags; the comment kinds and tag docs per language |
 | `src/core/brackets.ts` | Explains brackets from their place in the syntax tree |
-| `src/core/parser.ts` | Loads the tree-sitter grammars |
+| `src/core/parser.ts` | Loads the tree-sitter grammars, each one the first time its language is needed |
 | `src/extension.ts` | VS Code wiring: hover provider, decorations, settings |
 
 Doc entries are looked up from most to least specific:
@@ -141,4 +149,5 @@ To find the node type names for a construct, paste some code into the playground
 ```bash
 npm test             # analyzer tests per language against samples/ (node:test)
 npm run test:vscode  # runs the extension in an isolated VS Code instance
+npm run web          # runs the extension in VS Code for the web, for trying it by hand
 ```

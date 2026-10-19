@@ -44,6 +44,18 @@ const common = {
   banner: { js: "const __importMetaUrl = require('url').pathToFileURL(__filename).href;" },
 };
 
+// The same extension for VS Code in the browser (vscode.dev, github.dev), where it runs in a Web Worker.
+const web = {
+  ...common,
+  platform: 'browser',
+  target: 'es2022',
+  // web-tree-sitter only imports these on its Node code path.
+  external: ['vscode', 'fs/promises', 'module'],
+  // Never used to find files (the runtime gets its bytes from the extension), but it must be a valid URL.
+  define: { 'import.meta.url': '"https://syntax-tutor.invalid/dist/web/extension.js"' },
+  banner: {},
+};
+
 const langBundle = (name) =>
   esbuild.context({ ...common, entryPoints: [`src/docs/${name}.ts`], outfile: `dist/test/lang-${name}.js` });
 
@@ -52,6 +64,7 @@ const contexts = await Promise.all(
     ? [langBundle(onlyLang)]
     : [
         esbuild.context({ ...common, entryPoints: ['src/extension.ts'], outfile: 'dist/extension.js', external: ['vscode'] }),
+        esbuild.context({ ...web, entryPoints: ['src/extension.ts'], outfile: 'dist/web/extension.js' }),
         esbuild.context({ ...common, entryPoints: ['src/core/index.ts'], outfile: 'dist/test/core.js' }),
         ...readdirSync('src/docs').filter((f) => f.endsWith('.ts')).map((f) => langBundle(f.slice(0, -3))),
       ],
