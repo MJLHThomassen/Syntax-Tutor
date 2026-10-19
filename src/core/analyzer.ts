@@ -175,7 +175,7 @@ export function explain(spec: LanguageSpec, tree: Tree, point: Point, options: O
   const grouping = jump || bracket ? undefined : groupingOf(token);
   if (jump) markdown += `\n\n---\n\n↳ **Here:** ${jump.verb} \`${firstLine(jump.node)}\``;
   else if (bracket) markdown += `\n\n---\n\n↳ **Here:** ${bracket}`;
-  else if (grouping) markdown += `\n\n---\n\n${groupingMarkdown(token.text, grouping)}`;
+  else if (grouping) markdown += `\n\n---\n\n${groupingMarkdown(grouping)}`;
   return { markdown, span: span(found.node) };
 }
 

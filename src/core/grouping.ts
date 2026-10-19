@@ -59,7 +59,14 @@ export interface Grouping {
   operands: string[];
   /** The whole expression, with each part made of operators in parentheses (unless it's too long). */
   grouped?: string;
+  /** The operator as written, also when it is two words (Python's `not in`, `is not`). */
+  operator: string;
+  /** A chained comparison (Python's `0 < i < n`) spelled out: `0 < i and i < n`. */
+  chain?: string;
 }
+
+/** An operator of two tokens (Python's `not in`, `is not`): a node whose type is its own text. */
+const isWordPair = (n: Node) => n.childCount > 0 && n.type === n.text.replace(/\s+/g, ' ');
 
 /** Operator expressions in `node`, counting `node` itself, without looking inside explicit parentheses or calls. */
 function countOperators(node: Node): number {
@@ -95,25 +102,47 @@ const shorten = (text: string, max: number) => (text.length > max ? `${text.slic
  * lone operator (`a + b`), where there is nothing to group.
  */
 export function groupingOf(token: Node): Grouping | undefined {
-  const own = token.parent;
+  const op = token.parent && isWordPair(token.parent) ? token.parent : token;
+  const own = op.parent;
   if (token.isNamed || !own || !isOperatorExpression(own) || NOT_OPERATORS.has(token.text)) return undefined;
   let root = own;
   while (root.parent && isOperatorExpression(root.parent)) root = root.parent;
-  if (countOperators(root) < 2) return undefined;
-  const grouped = oneLine(render(root));
-  const operands: string[] = [];
-  for (let i = 0; i < own.namedChildCount; i++) {
-    const child = own.namedChild(i)!;
-    if (!child.type.includes('comment')) operands.push(shorten(oneLine(child.text), MAX_OPERAND));
+  const operands: Node[] = [];
+  const operators: string[] = [];
+  for (let i = 0; i < own.childCount; i++) {
+    const child = own.child(i)!;
+    if (child.type.includes('comment')) continue;
+    if (child.isNamed && !isWordPair(child)) operands.push(child);
+    else if (operands.length) operators.push(oneLine(child.text));
   }
-  return operands.length ? { operands, grouped: grouped.length > MAX_GROUPED ? undefined : grouped } : undefined;
+  // Python's `a < b < c` is one node with several operators: `a < b and b < c`.
+  const chain =
+    own.type === 'comparison_operator' && operands.length > 2 && operators.length === operands.length - 1
+      ? operators.map((o, i) => `${oneLine(operands[i].text)} ${o} ${oneLine(operands[i + 1].text)}`).join(' and ')
+      : undefined;
+  if (countOperators(root) < 2 && !chain) return undefined;
+  const grouped = oneLine(render(root));
+  if (!operands.length) return undefined;
+  return {
+    operands: operands.map((o) => shorten(oneLine(o.text), MAX_OPERAND)),
+    // Left out when it would only repeat the code (a chain on its own has nothing to put in parentheses).
+    grouped: grouped.length > MAX_GROUPED || grouped === oneLine(root.text) ? undefined : grouped,
+    operator: oneLine(op.text),
+    chain: chain && chain.length <= MAX_GROUPED ? chain : undefined,
+  };
 }
 
 /** "↳ Here: `+` combines `a` and `b * c`." plus the grouped expression. */
-export function groupingMarkdown(operator: string, grouping: Grouping): string {
-  const parts = grouping.operands.map(codeSpan);
-  const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
-  const verb = parts.length === 1 ? 'applies to' : parts.length === 2 ? 'combines' : 'works on';
-  const here = `↳ **Here:** ${codeSpan(operator)} ${verb} ${list}.`;
+export function groupingMarkdown(grouping: Grouping): string {
+  const operator = codeSpan(grouping.operator);
+  let here: string;
+  if (grouping.chain) {
+    here = `↳ **Here:** ${operator} is part of a chained comparison, which checks ${codeSpan(grouping.chain)}.`;
+  } else {
+    const parts = grouping.operands.map(codeSpan);
+    const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
+    const verb = parts.length === 1 ? 'applies to' : parts.length === 2 ? 'combines' : 'works on';
+    here = `↳ **Here:** ${operator} ${verb} ${list}.`;
+  }
   return grouping.grouped ? `${here}\n\n**Grouped as:** ${codeSpan(grouping.grouped)}` : here;
 }
