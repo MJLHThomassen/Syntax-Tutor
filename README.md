@@ -2,7 +2,21 @@
 
 Learn a programming language while you read code. Hover over a keyword, operator or built-in to see what it means, and see at a glance which block of code it belongs to.
 
-Supports **Go**, **Rust**, **C**, **C++**, **C#**, **JavaScript** and **TypeScript** (including JSX/TSX).
+*Disclaimer*: This plugin is 100% vibe-coded.
+
+Supports:
+- **Go**
+- **Rust**
+- **C**
+- **C++**
+- **C#**
+- **JavaScript** and **TypeScript** (including JSX/TSX).
+
+Support for more languages can be added on request. Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/) so any language supported by it can be added easily.
+
+I created it because I mainly work in C# but sometimes also need to do things in Go and Rust.
+Their syntax is not top of mind, so when editing or reviewing code in those languages, I sometimes forget what some constructs mean (like the `:=` operator in Go) or where a scope begins and ends. 
+This plugin helps with that by highlighting scopes and showing explanation-on-hover for all language constructs such as operators and brackets but also attribute or generics syntax.
 
 ## Features
 
@@ -55,13 +69,11 @@ You can change the colors in `settings.json`:
 }
 ```
 
-VS Code doesn't report when the mouse leaves a hover, so a highlight started by hovering clears itself after `hoverTimeout` seconds (or when you hover something else or move the cursor), and the cursor's highlight comes back.
-
-## Development
+# Development
 
 The sections below are for working on the extension itself.
 
-### Run from source
+## Run from source
 
 ```bash
 npm install
@@ -77,7 +89,7 @@ npm run package
 code --install-extension syntax-tutor-0.1.0.vsix
 ```
 
-### How it works
+## How it works
 
 | File | What it does |
 |---|---|
@@ -96,14 +108,14 @@ Doc entries are looked up from most to least specific:
 
 To find the node type names for a construct, paste some code into the playground on [tree-sitter.github.io](https://tree-sitter.github.io/tree-sitter/), or print `tree.rootNode.toString()`.
 
-#### Adding a language
+### Adding a language
 
 1. Add the grammar package (it should ship a `.wasm` file) and copy the file in `scripts/build.mjs`.
 2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles).
 3. Add it to `ALL_SPECS` in `src/extension.ts`, and add `onLanguage:<id>` to `activationEvents`.
 4. Add `samples/tour.<ext>` and `test/<lang>.test.mjs`. `node scripts/build.mjs --lang <lang>` rebuilds just that language's test bundle.
 
-### Tests
+## Tests
 
 ```bash
 npm test             # analyzer tests per language against samples/ (node:test)
