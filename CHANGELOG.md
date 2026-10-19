@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - **Python support**, with the same depth as the other languages:
   - Hovers for every keyword (including the soft keywords `match`, `case`, `type` and `_`), operator and separator, the built-in functions, types, constants and exceptions, and every kind of literal: f-strings and their `{ }` fields, raw, bytes and triple-quoted strings, hex/octal/binary, float and imaginary numbers.
