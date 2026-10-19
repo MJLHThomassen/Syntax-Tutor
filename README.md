@@ -20,31 +20,54 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
 ## Features
 
-- **Hover explanations.** Hover a keyword, operator, built-in, literal or declaration name to see what it means. You get a short explanation, an example and a link to the official docs. The same token gets a different explanation depending on where it appears: `*` in `*int` (pointer type), `*p` (dereference) and `a * b`, or `<-` as send, receive or channel direction.
-- **Scope highlighting.** Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline. For example, `func`, `fn` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop.
-- **Jump targets.** For `return`, `break`, `continue`, `goto`, `throw`, `yield`/`await` and language-specific jumps (Go's `defer`/`fallthrough`, Rust's `?`), the scope they leave or jump to gets a second, lighter highlight. Labelled loops are followed, and the hover tells you where the jump goes.
-- **Comments and doc comments.** Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`. A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
-- **Explain This Line.** Right-click a line (or select several) and choose **Syntax Tutor: Explain This Line**, or press `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). A side panel explains every part of the line in reading order: keywords, operators and brackets get their explanation, and plain names say where they are declared ("declared on line 12 as a parameter"). When your language extension (TypeScript, gopls, rust-analyzer, C#, C/C++) has documentation for a name or member, the entry gets a collapsed **IntelliSense documentation** section with that doc string; bare signatures like `(local variable) Guid userId` are left out. A sentence at the top says what the line is, for example "This line starts the `for` statement (lines 38–40)". With several lines selected, parts inside a block or branch opened in those lines are indented under a small "inside the body of the `if` statement" header, with a coloured border per nesting level. Hover an entry to highlight it in the editor, click it to scroll there (your selection stays), double-click to put the cursor on it, and turn on **Follow cursor** to keep the panel in step as you move through the code.
+- **Hover explanations.** Hover a piece of syntax to see what it means.
+
+  ![Hover popup explaining the * operator in Go](images/hover.png)
+
+  This works on keywords, operators, built-ins, literals and declaration names. You get a short explanation, an example and a link to the official docs. The same token gets a different explanation depending on where it appears: `*` in `*int` (pointer type), `*p` (dereference) and `a * b`, or `<-` as send, receive or channel direction.
+
+- **Scope highlighting.** See at a glance which construct a keyword belongs to.
+
+  ![Scope highlight following the cursor over func, else and range](images/scope.gif)
+
+  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline. For example, `func`, `fn` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop.
+
+- **Jump targets.** See where `return`, `break` and other jumps take you.
+
+  ![Jump-target highlight for a return statement](images/jump.png)
+
+  For `return`, `break`, `continue`, `goto`, `throw`, `yield`/`await` and language-specific jumps (Go's `defer`/`fallthrough`, Rust's `?`), the scope they leave or jump to gets a second, lighter highlight. Labelled loops are followed, and the hover tells you where the jump goes.
+
+- **Comments and doc comments.** Find out what kind of comment you're reading and what its doc tags mean.
+
+  ![Hover on a @param tag in a TSDoc comment](images/doc-comment.png)
+  ![The parameter of the selected tag is highlighted in code](images/doc-comment-param.png)
+
+  Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`. A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
+
+- **Explain This Line.** Get every part of a line explained, in order, in a side panel.
+
+  ![Explain This Line panel breaking down a C enum declaration part by part](images/explain-line.png)
+
+  Right-click a line (or select several) and choose **Syntax Tutor: Explain This Line**, or press `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). The panel explains every part of the line in reading order: keywords, operators and brackets get their explanation, and plain names say where they are declared ("declared on line 12 as a parameter"). When your language extension (TypeScript, gopls, rust-analyzer, C#, C/C++) has documentation for a name or member, the entry gets a collapsed **IntelliSense documentation** section with that doc string; bare signatures like `(local variable) Guid userId` are left out. A sentence at the top says what the line is, for example "This line starts the `for` statement (lines 38–40)". With several lines selected, parts inside a block or branch opened in those lines are indented under a small "inside the body of the `if` statement" header, with a coloured border per nesting level. Hover an entry to highlight it in the editor, click it to scroll there (your selection stays), double-click to put the cursor on it, and turn on **Follow cursor** to keep the panel in step as you move through the code.
 
 Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/), so it needs no language server (gopls, rust-analyzer, clangd, ...). If you do use one, both hovers appear in the same popup, and the Syntax Tutor part starts with **🎓 *Syntax Tutor***.
 
-## Screenshots
+## Commands
 
-Hover a keyword or operator to see what it does:
+Run these from the Command Palette (`Ctrl+Shift+P`, `Cmd+Shift+P` on Mac).
 
-![Hover popup explaining the * operator in Go](images/hover.png)
+- **Syntax Tutor: Explain This Line** opens the Explain This Line panel for the line the cursor is on, or for all selected lines.
 
-Moving the cursor over a keyword highlights the scope it belongs to:
+  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript and TypeScript files.
 
-![Scope highlight following the cursor over func, else and range](images/scope.gif)
+- **Syntax Tutor: Toggle Hover Explanations** turns the hover explanations on or off.
 
-`return`, `break` and `continue` also lightly highlight where they jump to:
+  It changes `syntaxTutor.hover.enabled` in your user settings, so the choice stays in every window and after a restart. The status bar briefly shows whether it's now on or off.
 
-![Jump-target highlight for a return statement](images/jump.png)
+- **Syntax Tutor: Toggle Scope Highlighting** turns the scope and jump-target highlighting on or off.
 
-Doc-comment tags are explained too, and a tag that names a parameter highlights that parameter:
-
-![Hover on a @param tag in a TSDoc comment](images/doc-comment.png)
+  It changes `syntaxTutor.scopeHighlight.enabled` in your user settings, so the choice stays in every window and after a restart. The status bar briefly shows whether it's now on or off.
 
 ## Settings
 
@@ -56,8 +79,6 @@ Doc-comment tags are explained too, and a tag that names a parameter highlights 
 | `syntaxTutor.scopeHighlight.hoverTimeout` | `4` | Seconds before a hover-started highlight clears itself (`0` = keep it) |
 | `syntaxTutor.scopeHighlight.showRelated` | `true` | Lighter highlight for jump targets and documented declarations |
 | `syntaxTutor.comments` | `all` | `all`, `doc` (skip plain comments) or `off` |
-
-Commands: **Syntax Tutor: Explain This Line**, **Syntax Tutor: Toggle Hover Explanations** and **Syntax Tutor: Toggle Scope Highlighting**.
 
 You can change the colors in `settings.json`:
 
