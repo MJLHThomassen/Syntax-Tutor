@@ -24,7 +24,7 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
   ![Hover popup explaining the * operator in Go](images/hover.png)
 
-  This works on keywords, operators, built-ins, literals and declaration names. You get a short explanation, an example and a link to the official docs. The same token gets a different explanation depending on where it appears: `*` in `*int` (pointer type), `*p` (dereference) and `a * b`, or `<-` as send, receive or channel direction.
+  This works on keywords, operators, built-ins, literals and declaration names. You get a short explanation, an example and a link to the official docs. The same token gets a different explanation depending on where it appears: `*` in `*int` (pointer type), `*p` (dereference) and `a * b`, or `<-` as send, receive or channel direction. In an expression with several operators, an operator's hover also shows what it works on and how operator precedence groups the expression: in `a + b * c == d`, `+` combines `a` and `b * c`, grouped as `(a + (b * c)) == d`.
 
 - **Scope highlighting.** See at a glance which construct a keyword belongs to.
 
@@ -126,6 +126,7 @@ npm run web
 | `src/core/analyzer.ts` | Finds the token under the cursor, picks its doc entry, and works out its scope |
 | `src/core/comments.ts`, `src/docs/comments.ts` | Comment blocks, doc comments and their tags; the comment kinds and tag docs per language |
 | `src/core/brackets.ts` | Explains brackets from their place in the syntax tree |
+| `src/core/grouping.ts` | Shows how operator precedence groups an expression, for operator hovers |
 | `src/core/parser.ts` | Loads the tree-sitter grammars, each one the first time its language is needed |
 | `src/extension.ts` | VS Code wiring: hover provider, decorations, settings |
 

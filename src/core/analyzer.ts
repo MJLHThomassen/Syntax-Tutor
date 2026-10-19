@@ -2,6 +2,7 @@ import type { Node, Point, Tree } from 'web-tree-sitter';
 import type { DocEntry, DocKind, LanguageSpec, Role } from './model';
 import { bracketSummary } from './brackets';
 import { type CommentFilter, explainComment } from './comments';
+import { groupingMarkdown, groupingOf } from './grouping';
 import { fieldOf, firstLine, lastLeaf } from './nodes';
 
 export interface Span {
@@ -168,8 +169,10 @@ export function explain(spec: LanguageSpec, tree: Tree, point: Point, options: O
   }
   let markdown = renderDoc(spec, found.doc, token.text);
   const jump = spec.jumpTarget(token);
+  const grouping = jump || bracket ? undefined : groupingOf(token);
   if (jump) markdown += `\n\n---\n\n↳ **Here:** ${jump.verb} \`${firstLine(jump.node)}\``;
   else if (bracket) markdown += `\n\n---\n\n↳ **Here:** ${bracket}`;
+  else if (grouping) markdown += `\n\n---\n\n${groupingMarkdown(token.text, grouping)}`;
   return { markdown, span: span(found.node) };
 }
 
