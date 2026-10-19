@@ -4,7 +4,7 @@ import { explain, scopeFor, type ScopeResult, type Span } from './core/analyzer'
 import type { LanguageSpec } from './core/model';
 import { editTree } from './core/incremental';
 import { Parsers } from './core/parser';
-import { ExplainPanel } from './explainPanel';
+import { ExplainPanel, type PanelDeps } from './explainPanel';
 import { c } from './docs/c';
 import { cpp } from './docs/cpp';
 import { csharp } from './docs/csharp';
@@ -214,6 +214,35 @@ export async function activate(context: vscode.ExtensionContext) {
   highlighter.onHoverExpired = () => highlightAtCursor(vscode.window.activeTextEditor);
 
 
+  /** The active editor if it shows a supported language, else a hint. */
+  const supportedEditor = () => {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && SPECS[editor.document.languageId]) return editor;
+    void vscode.window.showInformationMessage('Syntax Tutor: open a Go, Rust, C, C++, C#, JavaScript, TypeScript or Python file first.');
+    return undefined;
+  };
+  /** What the Explain panel needs (Explain This Line and Explain This Function). */
+  const panelDeps: PanelDeps = {
+    specFor: (doc) => SPECS[doc.languageId],
+    treeFor: (doc) => trees.ready(doc),
+    options: () => config(),
+    quiet: async (fn) => {
+      quietHovers++;
+      try {
+        return await fn();
+      } finally {
+        quietHovers--;
+      }
+    },
+    highlight: (target, span) => {
+      // The part's own scope if it has one (a keyword's construct), else just the part itself.
+      const spec = SPECS[target.document.languageId];
+      const tree = spec && trees.get(target.document);
+      const scope = tree && scopeFor(spec, tree, span.start, false, config());
+      highlighter.show(target, scope ?? { primary: span, boundaries: [] }, 'hover', config().showRelated, config().hoverTimeout);
+    },
+  };
+
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(SELECTOR, {
       async provideHover(doc, position) {
@@ -252,31 +281,12 @@ export async function activate(context: vscode.ExtensionContext) {
       toggle('scopeHighlight.enabled', 'Scope highlighting'),
     ),
     vscode.commands.registerCommand('syntaxTutor.explainLine', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor || !SPECS[editor.document.languageId]) {
-        void vscode.window.showInformationMessage('Syntax Tutor: open a Go, Rust, C, C++, C#, JavaScript, TypeScript or Python file first.');
-        return undefined;
-      }
-      return ExplainPanel.show(context, {
-        specFor: (doc) => SPECS[doc.languageId],
-        treeFor: (doc) => trees.ready(doc),
-        options: () => config(),
-        quiet: async (fn) => {
-          quietHovers++;
-          try {
-            return await fn();
-          } finally {
-            quietHovers--;
-          }
-        },
-        highlight: (target, span) => {
-          // The part's own scope if it has one (a keyword's construct), else just the part itself.
-          const spec = SPECS[target.document.languageId];
-          const tree = spec && trees.get(target.document);
-          const scope = tree && scopeFor(spec, tree, span.start, false, config());
-          highlighter.show(target, scope ?? { primary: span, boundaries: [] }, 'hover', config().showRelated, config().hoverTimeout);
-        },
-      }, editor);
+      const editor = supportedEditor();
+      return editor && ExplainPanel.show(context, panelDeps, editor);
+    }),
+    vscode.commands.registerCommand('syntaxTutor.explainFunction', async () => {
+      const editor = supportedEditor();
+      return editor && ExplainPanel.showFunction(context, panelDeps, editor);
     }),
   );
 

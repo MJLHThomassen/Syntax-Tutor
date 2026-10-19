@@ -11,6 +11,7 @@
   - `#` comments: shebang, encoding declarations, `# type:`, `# noqa`, `# pylint:`, `# pragma: no cover`, `# fmt: off`, `#:` attribute docs and `TODO`s.
   - Explain This Line nests the parts of indented blocks like braced ones.
 - A trailing comment's hover now quotes the whole line of code before it.
+- **Explain This Function** (editor context menu): an outline of the function the cursor is in, in the Explain panel. A summary says what it takes and returns and how many loops and decisions it has; each step is a row in plain words ("If `b == 0`:", "For each `n` in `nums`:", "Returns early with `0, err`"), nested like the code. Hidden exits such as Rust's `?` are pointed out. Hover a step to highlight it, click to scroll there.
 - **Operator grouping**: in an expression with several operators, an operator's hover (and its Explain This Line entry) says what it works on and shows the expression with its implicit groups in parentheses. For example, in `a + b * c == d`, `+` combines `a` and `b * c`, and the expression is grouped as `(a + (b * c)) == d`.
 
 ## 0.2.0

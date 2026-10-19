@@ -52,6 +52,10 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
   Right-click a line (or select several) and choose **Syntax Tutor: Explain This Line**, or press `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). The panel explains every part of the line in reading order: keywords, operators and brackets get their explanation, and plain names say where they are declared ("declared on line 12 as a parameter"). When your language extension (TypeScript, gopls, rust-analyzer, C#, C/C++, Python/Pylance) has documentation for a name or member, the entry gets a collapsed **IntelliSense documentation** section with that doc string; bare signatures like `(local variable) Guid userId` are left out. A sentence at the top says what the line is, for example "This line starts the `for` statement (lines 38–40)". With several lines selected, parts inside a block or branch opened in those lines are indented under a small "inside the body of the `if` statement" header, with a coloured border per nesting level. Hover an entry to highlight it in the editor, click it to scroll there (your selection stays), double-click to put the cursor on it, and turn on **Follow cursor** to keep the panel in step as you move through the code.
 
+- **Explain This Function.** See the steps of a whole function as an outline, in a side panel.
+
+  Right-click inside a function and choose **Syntax Tutor: Explain This Function**. A summary at the top says what the function takes and returns, and how many loops and decisions it has. Below it, each step is one row in plain words, nested like the code: "If `b == 0`:", "For each `n` in `nums`:", "Returns early with `0, err`", "Leaves the `switch` (`break`)". Hidden exits are pointed out too, like Rust's `?` ("on error, returns early") and a Rust function's last expression ("the last expression, without `;`, is the result"). Hover a step to highlight it in the editor, click it to scroll there, and double-click to put the cursor on it. With **Follow cursor** on, the outline switches when you move into another function.
+
 Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/), so it needs no language server (gopls, rust-analyzer, clangd, ...). If you do use one, both hovers appear in the same popup, and the Syntax Tutor part starts with **🎓 *Syntax Tutor***.
 
 It also works in VS Code for the web, on [vscode.dev](https://vscode.dev) and [github.dev](https://github.dev) (press `.` on any GitHub repository), so you can use it while reading code on GitHub.
@@ -63,6 +67,10 @@ Run these from the Command Palette (`Ctrl+Shift+P`, `Cmd+Shift+P` on Mac).
 - **Syntax Tutor: Explain This Line** opens the Explain This Line panel for the line the cursor is on, or for all selected lines.
 
   It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript and Python files.
+
+- **Syntax Tutor: Explain This Function** opens the same panel with an outline of the function the cursor is in.
+
+  It's also in the editor's right-click menu. Inside a short lambda such as `x => x * 2`, it outlines the function around it instead.
 
 - **Syntax Tutor: Toggle Hover Explanations** turns the hover explanations on or off.
 
@@ -128,6 +136,7 @@ npm run web
 | `src/core/comments.ts`, `src/docs/comments.ts` | Comment blocks, doc comments and their tags; the comment kinds and tag docs per language |
 | `src/core/brackets.ts` | Explains brackets from their place in the syntax tree |
 | `src/core/grouping.ts` | Shows how operator precedence groups an expression, for operator hovers |
+| `src/core/outline.ts` | The outline of a function's steps, for Explain This Function |
 | `src/core/parser.ts` | Loads the tree-sitter grammars, each one the first time its language is needed |
 | `src/extension.ts` | VS Code wiring: hover provider, decorations, settings |
 

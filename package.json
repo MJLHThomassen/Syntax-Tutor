@@ -81,6 +81,11 @@
         "command": "syntaxTutor.explainLine",
         "title": "Syntax Tutor: Explain This Line",
         "icon": "$(mortar-board)"
+      },
+      {
+        "command": "syntaxTutor.explainFunction",
+        "title": "Syntax Tutor: Explain This Function",
+        "icon": "$(mortar-board)"
       }
     ],
     "menus": {
@@ -89,11 +94,20 @@
           "command": "syntaxTutor.explainLine",
           "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python)$/",
           "group": "navigation@90"
+        },
+        {
+          "command": "syntaxTutor.explainFunction",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python)$/",
+          "group": "navigation@91"
         }
       ],
       "commandPalette": [
         {
           "command": "syntaxTutor.explainLine",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python)$/"
+        },
+        {
+          "command": "syntaxTutor.explainFunction",
           "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python)$/"
         }
       ]

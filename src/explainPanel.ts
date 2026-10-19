@@ -4,6 +4,7 @@ import type { Options, Span } from './core/analyzer';
 import { explainLines, type LineExplanation, type LineItem } from './core/lines';
 import type { LanguageSpec } from './core/model';
 import { hasDocumentation } from './core/hoverDocs';
+import { type FunctionOutline, outlineFunction } from './core/outline';
 import { panelHtml } from './explainPanelHtml';
 
 /** What the panel needs from the extension. */
@@ -19,6 +20,9 @@ export interface PanelDeps {
 
 /** What `Explain This Line` returns: the explanation, plus the language-server docs as they arrive (for tests). */
 export type ExplainResult = LineExplanation & { languageDocs: Promise<(string | undefined)[]> };
+
+/** Explain This Line explains the parts of lines; Explain This Function outlines the steps of a function. */
+export type PanelMode = 'line' | 'function';
 
 /** How long to wait for a language server before giving up on its docs for one part. */
 const LANGUAGE_DOC_TIMEOUT_MS = 10_000;
@@ -60,21 +64,39 @@ const toRange = (s: Span) => new vscode.Range(s.start.row, s.start.column, s.end
  * "Explain this line": a side panel listing every part of the current line (or
  * selected lines) with its explanation. Hovering an entry highlights it in the
  * editor; clicking scrolls to it. With "Follow cursor" on, it updates as you move.
+ * "Explain this function" uses the same panel for an outline of a function's steps.
  */
 export class ExplainPanel implements vscode.Disposable {
   private static current: ExplainPanel | undefined;
   private readonly disposables: vscode.Disposable[] = [];
   private editor: vscode.TextEditor | undefined;
   private items: RenderedItem[] = [];
+  private mode: PanelMode = 'line';
+  /** In function mode: the outline's rows, and the function itself (index -1 in messages). */
+  private rows: { span: Span }[] = [];
+  private functionSpan: Span | undefined;
+  /** The function last outlined, so following the cursor within it doesn't re-render. */
+  private outlined = '';
   private follow: boolean;
   private followTimer: ReturnType<typeof setTimeout> | undefined;
   /** Bumped on every render, so late language-server answers for an old line are dropped. */
   private generation = 0;
 
   static async show(context: vscode.ExtensionContext, deps: PanelDeps, editor: vscode.TextEditor): Promise<ExplainResult | undefined> {
+    return ExplainPanel.open(context, deps, 'line').explain(editor);
+  }
+
+  static async showFunction(context: vscode.ExtensionContext, deps: PanelDeps, editor: vscode.TextEditor): Promise<FunctionOutline | undefined> {
+    const panel = ExplainPanel.open(context, deps, 'function');
+    panel.outlined = '';
+    return panel.explainFunction(editor);
+  }
+
+  private static open(context: vscode.ExtensionContext, deps: PanelDeps, mode: PanelMode): ExplainPanel {
     if (!ExplainPanel.current) ExplainPanel.current = new ExplainPanel(context, deps);
     else ExplainPanel.current.panel.reveal(vscode.ViewColumn.Beside, true);
-    return ExplainPanel.current.explain(editor);
+    ExplainPanel.current.mode = mode;
+    return ExplainPanel.current;
   }
 
   private readonly panel: vscode.WebviewPanel;
@@ -98,7 +120,7 @@ export class ExplainPanel implements vscode.Disposable {
       vscode.window.onDidChangeTextEditorSelection((e) => {
         if (!this.follow || !this.deps.specFor(e.textEditor.document) || Date.now() < this.ignoreSelectionUntil) return;
         clearTimeout(this.followTimer);
-        this.followTimer = setTimeout(() => void this.explain(e.textEditor), 200);
+        this.followTimer = setTimeout(() => void (this.mode === 'function' ? this.explainFunction(e.textEditor) : this.explain(e.textEditor)), 200);
       }),
     );
   }
@@ -133,6 +155,40 @@ export class ExplainPanel implements vscode.Disposable {
       generation,
     });
     return { ...result, languageDocs: this.addLanguageDocs(doc, generation) };
+  }
+
+  /** An outline of the function around the cursor. Unchanged when the cursor stays in the function last shown. */
+  private async explainFunction(editor: vscode.TextEditor): Promise<FunctionOutline | undefined> {
+    const doc = editor.document;
+    const spec = this.deps.specFor(doc);
+    const tree = spec && (await this.deps.treeFor(doc));
+    if (!spec || !tree) return undefined;
+    const pos = editor.selection.active;
+    const outline = outlineFunction(spec, tree, { row: pos.line, column: pos.character });
+    const key = outline ? `${doc.uri.toString()}@${doc.version}:${outline.span.start.row}:${outline.span.start.column}` : '';
+    if (key && key === this.outlined) return outline;
+    this.outlined = key;
+    this.editor = editor;
+    const generation = ++this.generation;
+    this.rows = outline?.rows ?? [];
+    this.functionSpan = outline?.span;
+    const file = vscode.workspace.asRelativePath(doc.uri);
+    this.panel.title = outline ? `Explain ${outline.label.replace(/^(the|this) /, '').replace(/`/g, '')}` : 'Explain function';
+    void this.panel.webview.postMessage({
+      type: 'outline',
+      file,
+      language: spec.displayName,
+      where: outline ? `${outline.label.replace(/`/g, '')} · lines ${outline.span.start.row + 1}–${outline.span.end.row + 1}` : '',
+      firstRow: outline?.span.start.row ?? 0,
+      signature: outline?.signature ?? '',
+      summary: outline ? await this.md(outline.summary) : '',
+      rows: await Promise.all(
+        (outline?.rows ?? []).map(async (r) => ({ html: await this.md(r.text), depth: r.depth, line: r.span.start.row + 1, keyword: r.keyword ?? '' })),
+      ),
+      follow: this.follow,
+      generation,
+    });
+    return outline;
   }
 
   /**
@@ -190,7 +246,10 @@ export class ExplainPanel implements vscode.Disposable {
   private ignoreSelectionUntil = 0;
 
   private onMessage(m: { type: string; index?: number; on?: boolean }): void {
-    const item = m.index !== undefined ? this.items[m.index] : undefined;
+    const list: { span: Span }[] = this.mode === 'function' ? this.rows : this.items;
+    // -1: the function's signature at the top (function mode only).
+    const whole = this.mode === 'function' && this.functionSpan ? { span: this.functionSpan } : undefined;
+    const item = m.index === -1 ? whole : m.index !== undefined ? list[m.index] : undefined;
     const editor = this.editor;
     switch (m.type) {
       case 'hover':

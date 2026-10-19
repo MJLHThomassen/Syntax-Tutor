@@ -104,6 +104,17 @@ async function run() {
   assert.ok(panelTab, 'no Explain panel tab');
   results.push(['explainLine panel', `${panelTab.label}: ${explained.structure}`]);
 
+  // Explain This Function: the outline of the function around the cursor, in the same panel.
+  const fnPos = find(ex.doc, 'if b == 0');
+  ex.editor.selection = new vscode.Selection(fnPos, fnPos);
+  const outline = await vscode.commands.executeCommand('syntaxTutor.explainFunction');
+  assert.ok(outline, 'explainFunction returned nothing');
+  assert.deepEqual(outline.rows.map((r) => r.text), ['If `b == 0`:', 'Returns early with `0, errors.New("divide by zero")`', 'Returns `a / b, nil`']);
+  await sleep(300);
+  const fnTab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((t) => t.input instanceof vscode.TabInputWebview);
+  assert.equal(fnTab?.label, 'Explain function divide');
+  results.push(['explainFunction panel', `${fnTab.label}: ${outline.summary}`]);
+
   // Names and members also get the language server's hover (built-in TypeScript here).
   const tsDoc = await open('tour.ts');
   const tsPos = find(tsDoc.doc, 'if (isString(shape.name)');
