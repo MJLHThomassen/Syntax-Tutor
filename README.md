@@ -14,27 +14,23 @@ Supports **Go**, **Rust**, **C**, **C++**, **C#**, **JavaScript** and **TypeScri
 
 Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/), so it needs no language server (gopls, rust-analyzer, clangd, ...). If you do use one, both hovers appear in the same popup, and the Syntax Tutor part starts with **🎓 *Syntax Tutor***.
 
-<!--
 ## Screenshots
 
-TODO: add screenshots or GIFs before publishing, then remove this comment.
+Hover a keyword or operator to see what it does:
 
-How to capture them:
-1. Run `npm run build`, open this folder in VS Code and press F5. The window that opens shows `samples/`.
-2. Pick a clean theme and a larger font (for example "editor.fontSize": 16), and hide the minimap and sidebar.
-3. Capture these, in this order:
-   - hover.png: the hover popup on `*` in `samples/tour.go` (or on `?` in `samples/tour.rs`).
-   - scope.gif: move the cursor over `func`, `else` and `range` in `samples/tour.go` to show the scope highlight.
-   - jump.png: the cursor on `return` or `break`, showing the lighter jump-target highlight.
-   - doc-comment.png: hovering `@param` in `samples/comments/comments.ts`.
-   On macOS, Cmd+Shift+4 takes a screenshot and Cmd+Shift+5 records the screen. Turn a recording into a GIF with
-   Kap (https://getkap.co) or `ffmpeg -i in.mov -vf "fps=12,scale=900:-1" scope.gif`. Keep GIFs under about 5 MB.
-4. Save them in `images/` and add `!images/*.png` and `!images/*.gif` to .vscodeignore.
-5. The Marketplace needs absolute https image URLs. Relative paths only work once package.json has a `repository` field
-   (vsce then rewrites them). Without one, use full URLs to wherever the images are hosted. Then replace this comment
-   with a "## Screenshots" heading and one Markdown image line per file. (No image syntax in this comment:
-   vsce checks image links even inside comments and refuses to package.)
--->
+![Hover popup explaining the * operator in Go](images/hover.png)
+
+Moving the cursor over a keyword highlights the scope it belongs to:
+
+![Scope highlight following the cursor over func, else and range](images/scope.gif)
+
+`return`, `break` and `continue` also lightly highlight where they jump to:
+
+![Jump-target highlight for a return statement](images/jump.png)
+
+Doc-comment tags are explained too, and a tag that names a parameter highlights that parameter:
+
+![Hover on a @param tag in a TSDoc comment](images/doc-comment.png)
 
 ## Settings
 
