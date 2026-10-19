@@ -28,7 +28,7 @@ const BRACKETS = new Set(['{', '}', '(', ')', '[', ']']);
 const CLOSERS = new Set(['}', ')', ']']);
 const OPENERS_TITLE: Record<string, string> = { '(': '( )', ')': '( )', '[': '[ ]', ']': '[ ]', '{': '{ }', '}': '{ }' };
 /** Kinds that describe a value or name, not a construct with its own scope. */
-const NO_SCOPE_KINDS = new Set<DocKind>(['value', 'literal', 'type', 'trait', 'function', 'macro']);
+const NO_SCOPE_KINDS = new Set<DocKind>(['value', 'literal', 'type', 'trait', 'function', 'macro', 'convention']);
 
 const KIND_LABEL: Record<DocKind, string> = {
   keyword: 'keyword',
@@ -40,6 +40,7 @@ const KIND_LABEL: Record<DocKind, string> = {
   trait: 'standard trait',
   value: 'built-in value',
   macro: 'macro',
+  convention: 'naming convention',
 };
 
 const span = (n: Node): Span => ({ start: n.startPosition, end: n.endPosition });
@@ -48,8 +49,10 @@ function before(a: Point, b: Point): boolean {
   return a.row < b.row || (a.row === b.row && a.column < b.column);
 }
 
-function isComment(n: Node): boolean {
-  for (let p: Node | null = n; p; p = p.parent) if (p.type.includes('comment')) return true;
+/** Whether `n` is (inside) a comment, or a string literal the language treats as a doc comment. */
+function isComment(spec: LanguageSpec, n: Node): boolean {
+  const docString = spec.comments?.isDocString;
+  for (let p: Node | null = n; p; p = p.parent) if (p.type.includes('comment') || docString?.(p)) return true;
   return false;
 }
 
@@ -94,7 +97,7 @@ function tokenDoc(spec: LanguageSpec, token: Node): { doc: DocEntry; node: Node 
     (textMatches ? lookup(spec, text) : undefined) ??
     lookup(spec, `#${token.type}`);
   if (doc) return { doc, node: token };
-  const literal = parent && lookup(spec, `#${parent.type}`);
+  const literal = parent && (spec.literalDoc?.(parent) ?? lookup(spec, `#${parent.type}`));
   return literal ? { doc: literal, node: parent } : undefined;
 }
 
@@ -145,7 +148,7 @@ export interface Options {
 export function explain(spec: LanguageSpec, tree: Tree, point: Point, options: Options = {}): Explanation | undefined {
   const token = asName(spec, tokenAt(tree, point));
   if (!token) return undefined;
-  if (isComment(token)) {
+  if (isComment(spec, token)) {
     const c = explainComment(spec, token, point, options.comments);
     return c && { markdown: c.markdown, span: c.span };
   }
@@ -185,7 +188,7 @@ export function scopeFor(
 ): ScopeResult | undefined {
   const token = asName(spec, tokenAt(tree, point, lookBehind));
   if (!token) return undefined;
-  if (isComment(token)) {
+  if (isComment(spec, token)) {
     // The whole comment block (or the tag under the cursor), plus what it documents.
     const c = explainComment(spec, token, point, options.comments);
     return c && { primary: c.span, boundaries: [], related: c.related };
@@ -208,7 +211,9 @@ export function scopeFor(
 
   const boundaries = [span(token)];
   const end = lastLeaf(scope);
-  if (CLOSERS.has(end.type) && !end.equals(token)) boundaries.push(span(end));
+  // With indentation blocks only a bracket of the scope itself closes it, not one ending its last statement.
+  const closes = !spec.indentedBlocks || end.parent?.equals(scope);
+  if (CLOSERS.has(end.type) && !end.equals(token) && closes) boundaries.push(span(end));
   if (token.text === '}' || token.text === ')' || token.text === ']') {
     const open = scope.child(0);
     if (open && BRACKETS.has(open.type) && !open.equals(token)) boundaries.push(span(open));

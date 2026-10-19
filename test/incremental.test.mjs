@@ -18,6 +18,7 @@ const LANGS = [
   ['csharp', 'csharp', 'tour.cs'],
   ['javascript', 'javascript', 'tour.js'],
   ['typescript', 'typescript', 'tour.ts'],
+  ['python', 'python', 'tour.py', '#'],
 ];
 
 /** Row/column (UTF-16) of an offset. */
@@ -85,7 +86,7 @@ function apply(text, batch) {
 }
 
 describe('incremental parsing', () => {
-  for (const [file, exp, sample] of LANGS) {
+  for (const [file, exp, sample, comment = '//'] of LANGS) {
     test(`${exp}: edited + re-parsed tree equals a full parse`, async () => {
       const spec = require(`../dist/test/lang-${file}.js`)[exp];
       const parsers = await Parsers.load(readWasm, [spec]);
@@ -94,7 +95,7 @@ describe('incremental parsing', () => {
       assert.equal(tree.rootNode.hasError, false, 'sample should parse cleanly');
       const random = rng(42);
       for (let round = 0; round < 25; round++) {
-        const batch = makeBatch(tree, text, random, '//');
+        const batch = makeBatch(tree, text, random, comment);
         assert.ok(batch.length > 0);
         const newText = apply(text, batch);
         editTree(

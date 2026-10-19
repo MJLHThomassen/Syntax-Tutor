@@ -10,7 +10,8 @@ Supports:
 - **C**
 - **C++**
 - **C#**
-- **JavaScript** and **TypeScript** (including JSX/TSX).
+- **JavaScript** and **TypeScript** (including JSX/TSX)
+- **Python**
 
 Support for more languages can be added on request. Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/) so any language supported by it can be added easily.
 
@@ -30,26 +31,26 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
   ![Scope highlight following the cursor over func, else and range](images/scope.gif)
 
-  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline. For example, `func`, `fn` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop.
+  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline (Python blocks have no closing bracket: their indentation ends them). For example, `func`, `fn`, `def` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop.
 
 - **Jump targets.** See where `return`, `break` and other jumps take you.
 
   ![Jump-target highlight for a return statement](images/jump.png)
 
-  For `return`, `break`, `continue`, `goto`, `throw`, `yield`/`await` and language-specific jumps (Go's `defer`/`fallthrough`, Rust's `?`), the scope they leave or jump to gets a second, lighter highlight. Labelled loops are followed, and the hover tells you where the jump goes.
+  For `return`, `break`, `continue`, `goto`, `throw`/`raise`, `yield`/`await` and language-specific jumps (Go's `defer`/`fallthrough`, Rust's `?`), the scope they leave or jump to gets a second, lighter highlight. Labelled loops are followed, and the hover tells you where the jump goes.
 
 - **Comments and doc comments.** Find out what kind of comment you're reading and what its doc tags mean.
 
   ![Hover on a @param tag in a TSDoc comment](images/doc-comment.png)
   ![The parameter of the selected tag is highlighted in code](images/doc-comment-param.png)
 
-  Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`. A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
+  Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments, Python docstrings), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, `# noqa`, `# type:`, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`, Python docstring sections (`Args:`, NumPy `Parameters`, Sphinx `:param x:`) and doctests (`>>>`). A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
 
 - **Explain This Line.** Get every part of a line explained, in order, in a side panel.
 
   ![Explain This Line panel breaking down a C enum declaration part by part](images/explain-line.png)
 
-  Right-click a line (or select several) and choose **Syntax Tutor: Explain This Line**, or press `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). The panel explains every part of the line in reading order: keywords, operators and brackets get their explanation, and plain names say where they are declared ("declared on line 12 as a parameter"). When your language extension (TypeScript, gopls, rust-analyzer, C#, C/C++) has documentation for a name or member, the entry gets a collapsed **IntelliSense documentation** section with that doc string; bare signatures like `(local variable) Guid userId` are left out. A sentence at the top says what the line is, for example "This line starts the `for` statement (lines 38–40)". With several lines selected, parts inside a block or branch opened in those lines are indented under a small "inside the body of the `if` statement" header, with a coloured border per nesting level. Hover an entry to highlight it in the editor, click it to scroll there (your selection stays), double-click to put the cursor on it, and turn on **Follow cursor** to keep the panel in step as you move through the code.
+  Right-click a line (or select several) and choose **Syntax Tutor: Explain This Line**, or press `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). The panel explains every part of the line in reading order: keywords, operators and brackets get their explanation, and plain names say where they are declared ("declared on line 12 as a parameter"). When your language extension (TypeScript, gopls, rust-analyzer, C#, C/C++, Python/Pylance) has documentation for a name or member, the entry gets a collapsed **IntelliSense documentation** section with that doc string; bare signatures like `(local variable) Guid userId` are left out. A sentence at the top says what the line is, for example "This line starts the `for` statement (lines 38–40)". With several lines selected, parts inside a block or branch opened in those lines are indented under a small "inside the body of the `if` statement" header, with a coloured border per nesting level. Hover an entry to highlight it in the editor, click it to scroll there (your selection stays), double-click to put the cursor on it, and turn on **Follow cursor** to keep the panel in step as you move through the code.
 
 Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/), so it needs no language server (gopls, rust-analyzer, clangd, ...). If you do use one, both hovers appear in the same popup, and the Syntax Tutor part starts with **🎓 *Syntax Tutor***.
 
@@ -61,7 +62,7 @@ Run these from the Command Palette (`Ctrl+Shift+P`, `Cmd+Shift+P` on Mac).
 
 - **Syntax Tutor: Explain This Line** opens the Explain This Line panel for the line the cursor is on, or for all selected lines.
 
-  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript and TypeScript files.
+  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript and Python files.
 
 - **Syntax Tutor: Toggle Hover Explanations** turns the hover explanations on or off.
 
@@ -141,7 +142,7 @@ To find the node type names for a construct, paste some code into the playground
 ### Adding a language
 
 1. Add the grammar package (it should ship a `.wasm` file) and copy the file in `scripts/build.mjs`.
-2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles).
+2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles). For a language with indentation blocks set `indentedBlocks` (see `src/docs/python.ts`); `comments.isDocString` lets string literals act as doc comments, like Python docstrings.
 3. Add it to `ALL_SPECS` in `src/extension.ts`, and add `onLanguage:<id>` to `activationEvents`.
 4. Add `samples/tour.<ext>` and `test/<lang>.test.mjs`. `node scripts/build.mjs --lang <lang>` rebuilds just that language's test bundle.
 

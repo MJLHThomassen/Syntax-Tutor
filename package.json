@@ -1,7 +1,7 @@
 {
   "name": "syntax-tutor",
   "displayName": "Syntax Tutor",
-  "description": "Learn a programming language while you read code: hover explanations for keywords, operators and built-ins, plus marker-style highlighting of the scope a keyword belongs to. Go, Rust, C, C++, C#, JavaScript and TypeScript.",
+  "description": "Learn a programming language while you read code: hover explanations for keywords, operators and built-ins, plus marker-style highlighting of the scope a keyword belongs to. Go, Rust, C, C++, C#, JavaScript, TypeScript and Python.",
   "version": "0.2.0",
   "publisher": "MJLHThomassen",
   "license": "MIT",
@@ -50,6 +50,7 @@
     "typescript",
     "jsx",
     "tsx",
+    "python",
     "doc comments"
   ],
   "activationEvents": [
@@ -61,7 +62,8 @@
     "onLanguage:javascript",
     "onLanguage:javascriptreact",
     "onLanguage:typescript",
-    "onLanguage:typescriptreact"
+    "onLanguage:typescriptreact",
+    "onLanguage:python"
   ],
   "main": "./dist/extension.js",
   "browser": "./dist/web/extension.js",
@@ -85,14 +87,14 @@
       "editor/context": [
         {
           "command": "syntaxTutor.explainLine",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact)$/",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python)$/",
           "group": "navigation@90"
         }
       ],
       "commandPalette": [
         {
           "command": "syntaxTutor.explainLine",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact)$/"
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python)$/"
         }
       ]
     },
@@ -101,7 +103,7 @@
         "command": "syntaxTutor.explainLine",
         "key": "ctrl+shift+alt+e",
         "mac": "cmd+shift+alt+e",
-        "when": "editorTextFocus && editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact)$/"
+        "when": "editorTextFocus && editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python)$/"
       }
     ],
     "configuration": {
@@ -152,7 +154,7 @@
           ],
           "enumDescriptions": [
             "Explain and highlight every comment.",
-            "Only doc comments (JSDoc, XML doc, ///, Go doc comments), directives (//go:build, // @ts-expect-error, ...) and TODO-style notes; skip plain comments.",
+            "Only doc comments (JSDoc, XML doc, ///, Go doc comments, Python docstrings), directives (//go:build, // @ts-expect-error, # noqa, ...) and TODO-style notes; skip plain comments.",
             "Ignore comments."
           ],
           "default": "all",
@@ -214,6 +216,7 @@
     "tree-sitter-cpp": "0.23.4",
     "tree-sitter-go": "0.25.0",
     "tree-sitter-javascript": "0.25.0",
+    "tree-sitter-python": "0.25.0",
     "tree-sitter-rust": "0.24.0",
     "tree-sitter-typescript": "0.23.2",
     "typescript": "~5.9.3"

@@ -19,6 +19,7 @@ before(async () => {
     ['cs', 'csharp', 'csharp', 'comments.cs'],
     ['js', 'javascript', 'javascript', 'comments.js'],
     ['ts', 'typescript', 'typescript', 'comments.ts'],
+    ['py', 'python', 'python', 'comments.py'],
   ]) {
     L[key] = await load(file, exp, `comments/${sample}`);
   }
@@ -152,5 +153,71 @@ describe('the comments option', () => {
     assert.ok(explain(spec, tree, doc, { comments: 'doc' }));
     assert.equal(explain(spec, tree, doc, { comments: 'off' }), undefined);
     assert.equal(scopeFor(spec, tree, doc, false, { comments: 'off' }), undefined);
+  });
+});
+
+describe('Python comments and docstrings', () => {
+  test('# lines form one block; trailing comments are about their line', () => {
+    assert.equal(probe(L.py, 'Plain comments').primary, '# Plain comments\n        # on two lines.');
+    assert.match(probe(L.py, 'TODO: support').md, /TODO \/ FIXME note/);
+    const trailing = probe(L.py, 'a trailing comment');
+    assert.match(trailing.md, /`#` comment[\s\S]*About:\*\* `raise ValueError\("negative size"\)` on the same line/);
+    // After `def ...:` the whole line counts, not just the part before the comment's sibling.
+    assert.equal(probe(L.py, 'type: (float)').related, 'def scaled(self, factor):');
+  });
+
+  test('docstrings are doc comments for the module, class or function they open', () => {
+    const mod = probe(L.py, 'Shapes: a tiny');
+    assert.match(mod.md, /^\*\*Docstring\*\* · Python doc comment \(docstring\)/);
+    assert.match(mod.md, /Documents:\*\* the module \(this file\)/);
+    assert.ok(mod.primary.startsWith('"""Shapes:') && mod.primary.endsWith('"""'), mod.primary);
+    const fn = probe(L.py, 'Return the area');
+    assert.match(fn.md, /Docstring \(Google style\)[\s\S]*Documents:\*\* `def area\(w, h\):`/);
+    assert.equal(fn.related, 'def area(w, h):');
+    assert.match(probe(L.py, 'Return the perimeter').md, /Docstring \(NumPy style\)/);
+    const cls = probe(L.py, 'A rectangle.');
+    assert.match(cls.md, /Docstring \(Sphinx \/ reST style\)/);
+    assert.equal(cls.related, 'class Rect:');
+  });
+
+  test('docstring sections and parameter entries (Google, NumPy, Sphinx)', () => {
+    const args = probe(L.py, 'Args:', 0);
+    assert.match(args.md, /^\*\*`Args:`\*\* · docstring tag/);
+    assert.equal(args.primary, 'Args:\n        w (float): The width. Must not be negative.\n        h (float): The height.');
+    const w = probe(L.py, 'w (float)', 0);
+    assert.match(w.md, /refers to `w` in `def area\(w, h\):`/);
+    assert.equal(w.primary, 'w (float): The width. Must not be negative.');
+    assert.equal(w.related, 'w');
+    assert.match(probe(L.py, 'h : float', 0).md, /refers to `h` in `def perimeter\(w, h\):`/);
+    assert.equal(probe(L.py, 'Parameters', 0).primary.split('\n')[0], 'Parameters');
+    assert.equal(probe(L.py, ':param w').related, 'w');
+    assert.match(probe(L.py, ':raises').md, /exception/);
+    assert.equal(probe(L.py, '>>> area', 0).primary, '>>> area(2, 3)\n        6');
+    assert.match(probe(L.py, '.. deprecated').md, /deprecated/);
+  });
+
+  test('Sphinx cross-references link to the declaration', () => {
+    const p = probe(L.py, ':func:');
+    assert.match(p.md, /links to `def area\(w, h\):`/);
+    assert.equal(p.related, 'def area(w, h):');
+  });
+
+  test('Python directives and #: attribute docs', () => {
+    assert.match(probe(L.py, '#!/usr').md, /shebang/);
+    assert.match(probe(L.py, 'coding: utf-8').md, /Encoding declaration/);
+    assert.match(probe(L.py, 'noqa').md, /`# noqa`[\s\S]*About:\*\* `import math`/);
+    assert.match(probe(L.py, 'pylint').md, /Pylint/);
+    assert.match(probe(L.py, 'pragma').md, /coverage/);
+    assert.match(probe(L.py, 'fmt: skip').md, /Black/);
+    const attr = probe(L.py, '#: The default');
+    assert.match(attr.md, /attribute doc comment/);
+    assert.equal(attr.related, 'UNIT = "cm"');
+  });
+
+  test('"doc" skips plain # comments but keeps docstrings', () => {
+    const { spec, tree, src } = L.py;
+    assert.equal(explain(spec, tree, at(src, 'Plain comments', 0, 1), { comments: 'doc' }), undefined);
+    assert.ok(explain(spec, tree, at(src, 'Return the area', 0, 1), { comments: 'doc' }));
+    assert.equal(explain(spec, tree, at(src, 'Return the area', 0, 1), { comments: 'off' }), undefined);
   });
 });

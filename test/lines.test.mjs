@@ -14,6 +14,7 @@ before(async () => {
   L.ts = await load('typescript', 'typescript', 'tour.ts');
   L.cs = await load('csharp', 'csharp', 'tour.cs');
   L.c = await load('c', 'c', 'tour.c');
+  L.py = await load('python', 'python', 'tour.py');
 });
 
 /** Explain the line(s) starting at the line containing `needle`. */
@@ -101,6 +102,37 @@ describe('explain this line', () => {
     assert.equal(strings[0].markdown.split('\n')[0], '**`"héllo 👋"`** · C string literal'); // the literal itself, not "..."
     assert.match(strings[0].markdown, /string literal/);
     assert.ok(!strings[0].plain); // the literal's own doc, not the generic fallback
+  });
+
+  test('Python: indented blocks are scopes too, opened by their `:`', () => {
+    const r = lines(L.py, '    for n in nums:', 5);
+    assert.equal(r.structure, 'These lines are the `for` statement (lines 55–60).');
+    const at = (text, nth = 0) => r.items.filter((i) => i.text === text)[nth];
+    assert.equal(at('for').depth, 0);
+    assert.equal(at('if').depth, 1);
+    assert.equal(at('if').scope.label, 'the body of the `for` statement');
+    assert.equal(at('continue').depth, 2);
+    assert.equal(at('continue').scope.label, 'the body of the `if` statement');
+    assert.equal(at('else').depth, 0);
+    assert.equal(at('print').scope.label, 'the body of the `else` clause');
+    // A block whose header is above the selection doesn't count.
+    const inner = lines(L.py, '        result += n');
+    assert.equal(inner.structure, 'This line is the augmented assignment (line 58).');
+    assert.deepEqual(inner.items.map((i) => [i.text, i.depth]), [['result', 0], ['+=', 0], ['n', 0]]);
+    assert.match(inner.items[0].markdown, /declared on line 54 \(variable\)/);
+    assert.match(inner.items[2].markdown, /declared on line 55 \(loop variable\)/);
+  });
+
+  test('Python: a docstring line and an f-string line', () => {
+    const doc = lines(L.py, '"""A point');
+    assert.equal(doc.structure, 'This line is the docstring (line 18).');
+    assert.match(doc.items[0].markdown, /^\*\*Docstring\*\*/);
+    const f = lines(L.py, '    greeting = f"');
+    assert.equal(f.structure, 'This line is the assignment (line 122).');
+    const fstrings = f.items.filter((i) => i.text.startsWith('f"'));
+    assert.equal(fstrings.length, 1);
+    assert.match(fstrings[0].markdown, /^\*\*`f"héllo 👋 \{first \+ 1\} and \{squares!s\}"`\*\* · Python f-string/);
+    assert.ok(f.items.some((i) => i.text === 'squares'), 'code inside { } is explained');
   });
 
   test('code inside an interpolation is still explained', () => {

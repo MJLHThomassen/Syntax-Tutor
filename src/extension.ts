@@ -10,10 +10,11 @@ import { cpp } from './docs/cpp';
 import { csharp } from './docs/csharp';
 import { go } from './docs/go';
 import { javascript } from './docs/javascript';
+import { python } from './docs/python';
 import { rust } from './docs/rust';
 import { tsx, typescript } from './docs/typescript';
 
-const ALL_SPECS: readonly LanguageSpec[] = [go, rust, c, cpp, csharp, javascript, typescript, tsx];
+const ALL_SPECS: readonly LanguageSpec[] = [go, rust, c, cpp, csharp, javascript, typescript, tsx, python];
 /** VS Code language id → spec. */
 const SPECS: Record<string, LanguageSpec> = Object.fromEntries(
   ALL_SPECS.flatMap((spec) => spec.languageIds.map((id) => [id, spec])),
@@ -253,7 +254,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('syntaxTutor.explainLine', async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !SPECS[editor.document.languageId]) {
-        void vscode.window.showInformationMessage('Syntax Tutor: open a Go, Rust, C, C++, C#, JavaScript or TypeScript file first.');
+        void vscode.window.showInformationMessage('Syntax Tutor: open a Go, Rust, C, C++, C#, JavaScript, TypeScript or Python file first.');
         return undefined;
       }
       return ExplainPanel.show(context, {
