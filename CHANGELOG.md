@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - **Works in VS Code for the web**: vscode.dev and github.dev (press `.` on a GitHub repository).
 - Grammars load the first time a language is needed, instead of all at startup. This makes startup faster, and in the browser only the grammars you use are downloaded.
