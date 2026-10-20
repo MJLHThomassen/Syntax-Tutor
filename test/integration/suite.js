@@ -73,6 +73,7 @@ async function run() {
     ['tour.js', 'return a + b', 'JavaScript keyword'],
     ['tour.ts', 'return Math.PI', 'TypeScript keyword'],
     ['tour.tsx', 'return (', 'TypeScript keyword'],
+    ['tour.py', 'return a / b', 'Python keyword'],
   ]) {
     const { doc } = await open(file);
     const h = await hoverText(doc, find(doc, needle));

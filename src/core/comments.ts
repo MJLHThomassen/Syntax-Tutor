@@ -29,9 +29,12 @@ export interface CommentInfo {
 
 const isCommentNode = (n: Node) => /comment$/.test(n.type) && !/comment$/.test(n.parent?.type ?? '');
 
-/** The outermost comment node containing `token` (Rust nests doc_comment inside line_comment). */
-export function commentNode(token: Node): Node | undefined {
-  for (let n: Node | null = token; n; n = n.parent) if (isCommentNode(n)) return n;
+/**
+ * The outermost comment node containing `token` (Rust nests doc_comment inside line_comment),
+ * or the string literal that is a doc comment (Python docstrings).
+ */
+export function commentNode(token: Node, style?: CommentStyle): Node | undefined {
+  for (let n: Node | null = token; n; n = n.parent) if (isCommentNode(n) || style?.isDocString?.(n)) return n;
   return undefined;
 }
 
@@ -49,7 +52,15 @@ function endOf(n: Node): Point {
   };
 }
 
-const lineStyle = (text: string) => (text.startsWith('//') ? (text.match(/^\/\/[/!]?/)?.[0] ?? '//') : undefined);
+/**
+ * The kind of line comment, so different kinds don't merge into one block: `//`, `///`, `//!`,
+ * and `#` / `#:` (Python). A shebang or encoding line is a block of its own.
+ */
+function lineStyle(text: string): string | undefined {
+  if (text.startsWith('//')) return text.match(/^\/\/[/!]?/)?.[0] ?? '//';
+  if (text.startsWith('#')) return /^#!|^#.*coding[:=]/.test(text) ? text : text.startsWith('#:') ? '#:' : '#';
+  return undefined;
+}
 
 /** A run of comment nodes treated as one comment, with offset ↔ position mapping over its text. */
 class Block {
@@ -137,8 +148,10 @@ function kindOf(style: CommentStyle, block: Block): CommentKind | undefined {
 function documented(style: CommentStyle, block: Block, kind: CommentKind): Node | undefined {
   const first = block.nodes[0];
   if (kind.inner) {
+    // Climb out of the body (and, for a docstring, its expression statement) to the item itself.
     let p = first.parent;
-    while (p && /^(declaration_list|block|compound_statement)$/.test(p.type) && p.parent) p = p.parent;
+    while (p && /^(declaration_list|block|compound_statement|expression_statement)$/.test(p.type) && p.parent) p = p.parent;
+    if (p?.parent?.type === 'decorated_definition') p = p.parent; // Python: include the decorators
     return p && p.parent ? p : undefined; // not the whole file
   }
   let row = endOf(block.nodes.at(-1)!).row;
@@ -147,6 +160,8 @@ function documented(style: CommentStyle, block: Block, kind: CommentKind): Node 
     row = endOf(n).row;
     n = n.nextNamedSibling;
   }
+  // Python: a comment above the first statement of a body can be followed by the indented block itself.
+  if (n?.type === 'block' && n.firstNamedChild?.startIndex === n.startIndex) n = n.firstNamedChild;
   return n && !isCommentNode(n) && n.startPosition.row <= row + 1 ? n : undefined;
 }
 
@@ -258,7 +273,97 @@ function findTag(format: DocFormat, text: string, at: number): TagHit | undefine
         key: '[link]', from: m.index, to: m.index + m[0].length, extentFrom: m.index, extentTo: m.index + m[0].length, name: m[1],
       }));
     }
+    case 'pydoc':
+      return findPyDocTag(text, at, covering);
   }
+}
+
+// ----------------------------------------------------- Python docstrings
+
+/** Google (`Args:`) and NumPy (`Parameters` + `----------`) section headers. */
+const PY_SECTION = /(^|\n)([ \t]*)(Args|Arguments|Parameters|Params|Keyword Args|Keyword Arguments|Other Parameters|Returns|Return|Yields|Yield|Raises|Raise|Exceptions|Warns|Examples|Example|Attributes|Methods|Notes|Note|Warnings|Warning|See Also|Todo|References)([ \t]*:[ \t]*(?=\n)|[ \t]*\n[ \t]*-{3,}[ \t]*(?=\n|$))/g;
+const PY_SECTION_KEY: Record<string, string> = {
+  arguments: 'args', params: 'parameters', 'keyword arguments': 'keyword args', return: 'returns', yield: 'yields',
+  raise: 'raises', exceptions: 'raises', example: 'examples', note: 'notes', warning: 'warnings',
+};
+/** Sections whose entries are parameters (`name (type): text` or NumPy's `name : type`). */
+const PY_PARAM_SECTIONS = new Set(['args:', 'parameters:', 'keyword args:', 'other parameters:']);
+
+function findPyDocTag(
+  text: string,
+  at: number,
+  covering: (re: RegExp, f: (m: RegExpExecArray) => TagHit | undefined) => TagHit | undefined,
+): TagHit | undefined {
+  // The docstring's text ends before its closing quotes.
+  const body = text.length - (text.match(/("""|'''|"|')$/)?.[0].length ?? 0);
+  const until = (from: number, re: RegExp) => {
+    const next = text.slice(from + 1, body).search(re);
+    return trimEnd(text, from, next >= 0 ? from + 1 + next : body);
+  };
+
+  // Sphinx cross-references: :func:`name`, :class:`~pkg.Name`.
+  const role = covering(/:(?:py:)?(func|meth|class|mod|attr|exc|data|obj|const):`[~!]?([\w.]+)[^`]*`/g, (m) => ({
+    key: `:${m[1]}:`, from: m.index, to: m.index + m[0].length, extentFrom: m.index, extentTo: m.index + m[0].length, name: m[2],
+  }));
+  if (role) return role;
+
+  // reST field lists: `:param x:`, `:type x:`, `:returns:`, `:raises ValueError:`. The last word names the parameter.
+  const field = covering(/(^|\n)([ \t]*)(:(\w+)([^:\n`]*):)/g, (m) => {
+    const from = m.index + m[1].length + m[2].length;
+    return {
+      key: `:${m[4].toLowerCase()}:`, from, to: from + m[3].length,
+      extentFrom: from, extentTo: until(from, /\n[ \t]*(:\w|\.\. |\n|$)/), name: m[5].trim().split(/\s+/).at(-1) || undefined,
+    };
+  });
+  if (field) return field;
+
+  // reST directives: `.. note::`, `.. deprecated:: 2.0`.
+  const directive = covering(/(^|\n)([ \t]*)(\.\. ([\w-]+)::)/g, (m) => {
+    const from = m.index + m[1].length + m[2].length;
+    return { key: `.. ${m[4].toLowerCase()}::`, from, to: from + m[3].length, extentFrom: from, extentTo: until(from, /\n[ \t]*\n/) };
+  });
+  if (directive) return directive;
+
+  // Doctests: `>>> code` and the expected output, up to a blank line.
+  const doctest = covering(/(^|\n)([ \t]*)(>>>)/g, (m) => {
+    const from = m.index + m[1].length + m[2].length;
+    return { key: '>>>', from, to: from + 3, extentFrom: from, extentTo: until(from, /\n[ \t]*(\n|$)/) };
+  });
+  if (doctest) return doctest;
+
+  // Sections, and the parameter entries inside Args/Parameters sections.
+  const sections: TagHit[] = [];
+  PY_SECTION.lastIndex = 0;
+  for (let m = PY_SECTION.exec(text); m; m = PY_SECTION.exec(text)) {
+    const from = m.index + m[1].length + m[2].length;
+    const word = m[3].toLowerCase();
+    const colon = m[4].trimStart().startsWith(':');
+    sections.push({ key: `${PY_SECTION_KEY[word] ?? word}:`, from, to: from + m[3].length + (colon ? m[4].indexOf(':') + 1 : 0), extentFrom: from, extentTo: body });
+  }
+  sections.forEach((s, i) => (s.extentTo = trimEnd(text, s.from, i + 1 < sections.length ? sections[i + 1].from : body)));
+  const section = sections.find((s) => at >= s.from && at < s.to);
+  if (section) return section;
+
+  const inside = sections.find((s) => PY_PARAM_SECTIONS.has(s.key) && at >= s.to && at < s.extentTo);
+  if (!inside) return undefined;
+  // Skip the NumPy underline, then entries are the lines at the indentation of the first one.
+  const start = text.indexOf('\n', inside.to) + 1;
+  const lines = text.slice(start, inside.extentTo).split('\n');
+  let offset = start;
+  let indent: number | undefined;
+  const entries: TagHit[] = [];
+  for (const line of lines) {
+    const m = line.match(/^([ \t]*)(\*{0,2}([A-Za-z_]\w*))[ \t]*(?:\([^)\n]*\))?[ \t]*:(?!:)/);
+    const lineIndent = line.length - line.trimStart().length;
+    if (m && !/^[ \t]*-+[ \t]*$/.test(line) && (indent === undefined || lineIndent === indent)) {
+      indent ??= lineIndent;
+      const from = offset + m[1].length;
+      entries.push({ key: 'param-entry', from, to: from + m[2].length, extentFrom: from, extentTo: from, name: m[3] });
+    }
+    offset += line.length + 1;
+  }
+  entries.forEach((e, i) => (e.extentTo = trimEnd(text, e.from, i + 1 < entries.length ? entries[i + 1].from : inside.extentTo)));
+  return entries.find((e) => at >= e.from && at < e.to);
 }
 
 /** The parameter (or type parameter) named `name` inside the documented declaration. */
@@ -299,16 +404,17 @@ function headline(n: Node): string {
 
 /** The code before a trailing comment, on the same line. */
 function lineBefore(comment: Node): { text: string; span: Span } | undefined {
-  const prev = comment.previousNamedSibling;
-  if (!prev) return undefined;
+  // The source line itself, so the whole line counts even when the comment's previous
+  // sibling is only part of it (Python: `def f(x):  # note` follows the `:`).
+  const root = comment.tree.rootNode;
   const row = comment.startPosition.row;
-  const lines = prev.text.split('\n');
-  const offset = row - prev.startPosition.row;
-  if (offset < 0 || offset >= lines.length) return undefined;
-  const line = lines[offset];
-  const indent = offset === 0 ? prev.startPosition.column : line.length - line.trimStart().length;
-  const endCol = offset === 0 ? prev.startPosition.column + line.length : line.length;
-  return { text: line.trim(), span: { start: { row, column: indent }, end: { row, column: Math.min(endCol, comment.startPosition.column) } } };
+  let line = root.text.split('\n')[row - root.startPosition.row] ?? '';
+  if (row === root.startPosition.row) line = ' '.repeat(root.startPosition.column) + line;
+  line = line.slice(0, comment.startPosition.column);
+  const text = line.trim();
+  if (!text) return undefined;
+  const indent = line.length - line.trimStart().length;
+  return { text, span: { start: { row, column: indent }, end: { row, column: indent + text.length } } };
 }
 
 // ------------------------------------------------------------- rendering
@@ -330,7 +436,7 @@ function shown(category: CommentCategory, filter: CommentFilter): boolean {
 /** Hover text and highlight ranges for a comment at `point`. */
 export function explainComment(spec: LanguageSpec, token: Node, point: Point, filter: CommentFilter = 'all'): CommentInfo | undefined {
   const style = spec.comments;
-  const node = commentNode(token);
+  const node = commentNode(token, style);
   if (!style || !node || filter === 'off') return undefined;
   const block = blockOf(node);
   let kind = kindOf(style, block);
@@ -372,7 +478,7 @@ export function explainComment(spec: LanguageSpec, token: Node, point: Point, fi
   const label = `${spec.displayName} ${kind.category === 'plain' ? 'comment' : kind.category === 'doc' ? `doc comment${formatName ? ` (${formatName})` : ''}` : kind.category === 'directive' ? 'directive' : 'note'}`;
   let markdown = render(`**${kind.title}** · ${label}`, kind, spec.fence);
   if (target) markdown += `\n\n---\n\n↳ **Documents:** \`${headline(target)}\``;
-  else if (kind.inner) markdown += `\n\n---\n\n↳ **Documents:** the module or crate this file defines`;
+  else if (kind.inner) markdown += `\n\n---\n\n↳ **Documents:** ${kind.fileTarget ?? 'the module or crate this file defines'}`;
   else if (trailingOf) markdown += `\n\n---\n\n↳ **About:** \`${trailingOf.text}\` on the same line`;
   const related = target ? { start: target.startPosition, end: endOf(target) } : trailingOf?.span;
   return { markdown, span: block.span, related };

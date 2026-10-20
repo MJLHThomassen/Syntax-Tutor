@@ -18,6 +18,7 @@ const LANGS = [
   ['csharp', 'csharp', ['tour.cs', 'comments/comments.cs']],
   ['javascript', 'javascript', ['tour.js', 'comments/comments.js']],
   ['typescript', 'typescript', ['tour.ts', 'comments/comments.ts']],
+  ['python', 'python', ['tour.py', 'comments/comments.py']],
   ['typescript', 'tsx', ['tour.tsx']],
 ];
 

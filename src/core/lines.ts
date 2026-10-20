@@ -82,10 +82,13 @@ function scopesOf(token: Node, startRow: number): { depth: number; scope?: { id:
   for (let a = token.parent; a && a.startPosition.row >= startRow && a.parent; a = a.parent) {
     const first = firstLeaf(a);
     const braced = first.text === '{' && !first.isNamed && first.parent?.equals(a);
+    // Python: an indented block after a `:` header. It opens at the `:`, so only counts when that is in range too.
+    const colon = a.type === 'block' && !braced ? a.previousSibling : null;
+    const indented = !!colon && colon.text === ':' && !colon.isNamed && colon.startPosition.row >= startRow;
     const caseLike = CASE_LIKE.test(a.type);
-    if (!braced && !caseLike) continue;
+    if (!braced && !indented && !caseLike) continue;
     let header = '';
-    if (token.equals(first)) continue;
+    if (braced && token.equals(first)) continue;
     if (braced && token.equals(lastLeaf(a))) continue;
     if (caseLike) {
       // Skip the branch header: everything up to its `:` or `=>`.
@@ -103,7 +106,11 @@ function scopesOf(token: Node, startRow: number): { depth: number; scope?: { id:
     depth++;
     if (!scope) {
       const short = header.length > 40 ? `${header.slice(0, 39)}…` : header;
-      const label = braced ? bracketContext(first) ?? 'a block' : `the \`${short || firstLine(a, 40)}\` branch`;
+      const label = braced
+        ? bracketContext(first) ?? 'a block'
+        : indented
+          ? `the body of ${ownerLabel(a.parent!)}`
+          : `the \`${short || firstLine(a, 40)}\` branch`;
       scope = { id: a.id, label };
     }
   }
@@ -165,7 +172,7 @@ function fallback(spec: LanguageSpec, tree: Tree, token: Node): string | undefin
 }
 
 /** The construct the line belongs to: the biggest node starting at the line's first token. */
-function structureOf(tree: Tree, first: Node | undefined, startRow: number, endRow: number): string | undefined {
+function structureOf(spec: LanguageSpec, tree: Tree, first: Node | undefined, startRow: number, endRow: number): string | undefined {
   if (!first) return undefined;
   let n = first;
   // Climb to the biggest construct starting here, but not into containers (blocks, lists, the file).
@@ -180,7 +187,10 @@ function structureOf(tree: Tree, first: Node | undefined, startRow: number, endR
     n = n.parent;
   }
   if (n.childCount === 0 || n.type.endsWith('comment')) return undefined;
-  const label = ownerLabel(n).replace(/^the /, '');
+  // Python wraps every expression used as a statement, without a `;`: name what it holds ("the assignment").
+  const inner = n.type === 'expression_statement' && n.namedChildCount === 1 ? n.namedChild(0) : null;
+  if (inner && inner.startIndex === n.startIndex && inner.endIndex === n.endIndex) n = inner;
+  const label = spec.comments?.isDocString?.(n) ? 'docstring' : ownerLabel(n).replace(/^the /, '');
   const [from, to] = [n.startPosition.row + 1, n.endPosition.row + 1];
   const lines = from === to ? `line ${from}` : `lines ${from}–${to}`;
   const many = endRow > startRow ? 'These lines start' : 'This line starts';
@@ -269,7 +279,7 @@ export function explainLines(
     });
   }
   const first = tokens.find((t) => t.startPosition.row >= startRow);
-  return { structure: structureOf(tree, first, startRow, endRow), items };
+  return { structure: structureOf(spec, tree, first, startRow, endRow), items };
 }
 
 function textIn(tree: Tree, span: Span): string {

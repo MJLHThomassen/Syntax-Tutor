@@ -60,6 +60,22 @@ describe('operator grouping', () => {
     assert.match(here('**', 1), /`\*\*` combines `2` and `e`/);
   });
 
+  test('Python: not/and/or, -2 ** 2, two-word operators and chained comparisons', async () => {
+    const src = 'x = not a and b or c\nz = -2 ** 2 * k\nv = x not in s and y is not None\ny = 0 < i < n + 1\nw = 0 < i < n\n';
+    const { here } = await parse('python', 'python', src);
+    assert.ok(here('and').endsWith(grouped('((not a) and b) or c')));
+    // `**` binds tighter than unary minus: -2 ** 2 is -(2 ** 2).
+    assert.equal(here('-'), `↳ **Here:** \`-\` applies to \`2 ** 2\`.\n\n${grouped('(-(2 ** 2)) * k')}`);
+    assert.equal(here('not in'), `↳ **Here:** \`not in\` combines \`x\` and \`s\`.\n\n${grouped('(x not in s) and (y is not None)')}`);
+    assert.match(here('is not'), /^↳ \*\*Here:\*\* `is not` combines `y` and `None`\./);
+    assert.equal(
+      here('<'),
+      `↳ **Here:** \`<\` is part of a chained comparison, which checks \`0 < i and i < n + 1\`.\n\n${grouped('0 < i < (n + 1)')}`,
+    );
+    // A chain on its own still gets explained, without a "Grouped as" that would only repeat it.
+    assert.equal(here('<', 2), '↳ **Here:** `<` is part of a chained comparison, which checks `0 < i and i < n`.');
+  });
+
   test('a lone operator has nothing to group', async () => {
     const { here } = await parse('javascript', 'javascript', 'const v = a + b;\nf(a * b, c - d);');
     assert.equal(here('+'), undefined);

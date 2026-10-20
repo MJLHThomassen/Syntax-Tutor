@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **Python support**, with the same depth as the other languages:
+  - Hovers for every keyword (including the soft keywords `match`, `case`, `type` and `_`), operator and separator, the built-in functions, types, constants and exceptions, and every kind of literal: f-strings and their `{ }` fields, raw, bytes and triple-quoted strings, hex/octal/binary, float and imaginary numbers.
+  - The meaning follows the context: `else` on an `if`, a loop or a `try`; `in` in a `for` versus a membership test; `as` in imports, `with`, `except` and patterns; `*` and `**` as arithmetic, unpacking, `*args`/`**kwargs`, starred assignment or the keyword-only marker; `/` as division or the positional-only marker; the many uses of `:`; `@` as decorator or matrix multiplication.
+  - Declaration names say what they are: functions, methods (with special methods like `__init__` and `__add__` explained), class and static methods, properties, `self`/`cls`, positional-only and keyword-only parameters, globals and constants, class and instance attributes, loop and comprehension variables, `with`/`except` targets, imports and `match` capture patterns.
+  - Scope highlighting for indentation blocks: `def`, `class` (with their decorators), `if`/`elif`/`else` chains, loops, `try`/`except`, `with`, `match`/`case` and comprehensions. Jump targets for `return`, `break`, `continue`, `raise`, `yield` and `await`.
+  - **Docstrings** are explained as doc comments and highlight the module, class or function they document. Google (`Args:`), NumPy (`Parameters`) and Sphinx (`:param x:`) styles are recognised, with hovers for their sections, parameter entries (which highlight the parameter), cross-references (`` :func:`name` ``) and doctests (`>>>`).
+  - `#` comments: shebang, encoding declarations, `# type:`, `# noqa`, `# pylint:`, `# pragma: no cover`, `# fmt: off`, `#:` attribute docs and `TODO`s.
+  - Explain This Line nests the parts of indented blocks like braced ones.
+- A trailing comment's hover now quotes the whole line of code before it.
 - **Operator grouping**: in an expression with several operators, an operator's hover (and its Explain This Line entry) says what it works on and shows the expression with its implicit groups in parentheses. For example, in `a + b * c == d`, `+` combines `a` and `b * c`, and the expression is grouped as `(a + (b * c)) == d`.
 
 ## 0.2.0

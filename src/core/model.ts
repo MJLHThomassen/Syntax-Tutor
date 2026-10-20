@@ -2,7 +2,7 @@ import type { Node } from 'web-tree-sitter';
 
 /**
  * What a doc entry describes. Identifiers only match entries of the
- * "name-like" kinds (function, type, trait, value, macro); keyword and
+ * "name-like" kinds (function, type, trait, value, macro, convention); keyword and
  * operator entries only match tokens that are not identifiers.
  */
 export type DocKind =
@@ -14,7 +14,8 @@ export type DocKind =
   | 'type'
   | 'trait'
   | 'value'
-  | 'macro';
+  | 'macro'
+  | 'convention';
 
 export interface DocEntry {
   kind: DocKind;
@@ -85,12 +86,23 @@ export interface LanguageSpec {
   docFor?(token: Node): DocEntry | undefined;
   /** Extra check whether a doc entry applies to an identifier in context. */
   acceptIdentifierDoc?(node: Node, field: string | null, entry: DocEntry): boolean;
+  /**
+   * Doc for a whole literal whose kind depends on more than its node type (Python's
+   * `r"..."`, `f"..."`, `b"..."` are all `string` nodes). Tried before `"#<node type>"`.
+   */
+  literalDoc?(literal: Node): DocEntry | undefined;
+  /**
+   * Blocks are delimited by indentation (Python), not brackets: the last token of a
+   * scope is then whatever ends its last statement, so it isn't outlined as the
+   * scope's closing bracket.
+   */
+  indentedBlocks?: boolean;
   /** Comment kinds (doc comments, directives, ...) and the doc-tag syntax used inside them. */
   comments?: CommentStyle;
 }
 
 /** How tags and markup are written inside doc comments. */
-export type DocFormat = 'jsdoc' | 'doxygen' | 'xmldoc' | 'rustdoc' | 'godoc';
+export type DocFormat = 'jsdoc' | 'doxygen' | 'xmldoc' | 'rustdoc' | 'godoc' | 'pydoc';
 
 /**
  * plain: ordinary comment · doc: documents a declaration · directive: read by
@@ -109,6 +121,8 @@ export interface CommentKind {
   link?: string;
   /** Documents the item it sits inside (Rust `//!`) instead of the one after it. */
   inner?: boolean;
+  /** For inner doc comments at the top of a file: what they document (default "the module or crate this file defines"). */
+  fileTarget?: string;
   /** Tag syntax inside this kind of comment. */
   format?: DocFormat;
 }
@@ -132,6 +146,12 @@ export interface CommentStyle {
   attachedLineComments?: DocFormat;
   /** Nodes allowed between a doc comment and what it documents (attributes, decorators). */
   skipBetween?: ReadonlySet<string>;
+  /**
+   * Nodes that are doc comments although the grammar doesn't call them comments
+   * (Python docstrings are string literals). They are explained like comments, and
+   * their kind should be `inner`: they document the definition they sit in.
+   */
+  isDocString?(node: Node): boolean;
   /** Tag docs for the formats used in this language, keyed by format then tag. */
   tags: Partial<Record<DocFormat, Record<string, TagDoc>>>;
   /** Display name of each format, e.g. "JSDoc". */
