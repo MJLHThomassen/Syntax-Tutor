@@ -1,4 +1,5 @@
-import type { Node } from 'web-tree-sitter';
+import type { Node, Tree } from 'web-tree-sitter';
+import type { Injection } from './embedded';
 
 /**
  * What a doc entry describes. Identifiers only match entries of the
@@ -99,6 +100,13 @@ export interface LanguageSpec {
   indentedBlocks?: boolean;
   /** Comment kinds (doc comments, directives, ...) and the doc-tag syntax used inside them. */
   comments?: CommentStyle;
+  /**
+   * Parts of a document in other languages (an HTML `<script>`, a Vue template
+   * expression): each is parsed with its own spec and explained by it.
+   */
+  injections?(tree: Tree): Injection[];
+  /** Spec ids `injections` may return, so their grammars load together with this one. */
+  embeds?: readonly string[];
 }
 
 /** How tags and markup are written inside doc comments. */

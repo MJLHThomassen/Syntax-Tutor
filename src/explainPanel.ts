@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import type { Tree } from 'web-tree-sitter';
 import type { Options, Span } from './core/analyzer';
-import { explainLines, type LineExplanation, type LineItem } from './core/lines';
+import { type DocumentParts, explainDocumentLines, regionAt } from './core/embedded';
+import type { LineExplanation, LineItem } from './core/lines';
 import type { LanguageSpec } from './core/model';
 import { hasDocumentation } from './core/hoverDocs';
 import { type FunctionOutline, outlineFunction } from './core/outline';
@@ -10,7 +11,8 @@ import { panelHtml } from './explainPanelHtml';
 /** What the panel needs from the extension. */
 export interface PanelDeps {
   specFor(doc: vscode.TextDocument): LanguageSpec | undefined;
-  treeFor(doc: vscode.TextDocument): Promise<Tree | undefined>;
+  /** The document's parsed parts: its own language and the ones embedded in it (an HTML `<script>`). */
+  parts(doc: vscode.TextDocument): Promise<DocumentParts | undefined>;
   options(): Options;
   /** Show the scope highlight for the part at `span` (as if hovered). */
   highlight(editor: vscode.TextEditor, span: Span): void;
@@ -127,15 +129,17 @@ export class ExplainPanel implements vscode.Disposable {
 
   private async explain(editor: vscode.TextEditor): Promise<ExplainResult | undefined> {
     const doc = editor.document;
-    const spec = this.deps.specFor(doc);
-    const tree = spec && (await this.deps.treeFor(doc));
-    if (!spec || !tree) return undefined;
+    const parts = this.deps.specFor(doc) && (await this.deps.parts(doc));
+    if (!parts) return undefined;
     this.editor = editor;
     const sel = editor.selection;
     const startRow = sel.start.line;
     // A selection ending at column 0 of the next line doesn't include that line.
     const endRow = Math.max(startRow, sel.end.character === 0 && sel.end.line > sel.start.line ? sel.end.line - 1 : sel.end.line);
-    const result = explainLines(spec, tree, startRow, endRow, this.deps.options());
+    // The line's language is the one at its first character (in an HTML file, a `<script>` line is JavaScript).
+    const first = { row: startRow, column: doc.lineAt(startRow).firstNonWhitespaceCharacterIndex };
+    const spec = regionAt(parts.own, parts.embedded, first).spec;
+    const result = explainDocumentLines(parts, startRow, endRow, first, this.deps.options());
 
     const generation = ++this.generation;
     this.items = await Promise.all(result.items.map((i) => this.renderItem(i)));
@@ -160,11 +164,11 @@ export class ExplainPanel implements vscode.Disposable {
   /** An outline of the function around the cursor. Unchanged when the cursor stays in the function last shown. */
   private async explainFunction(editor: vscode.TextEditor): Promise<FunctionOutline | undefined> {
     const doc = editor.document;
-    const spec = this.deps.specFor(doc);
-    const tree = spec && (await this.deps.treeFor(doc));
-    if (!spec || !tree) return undefined;
-    const pos = editor.selection.active;
-    const outline = outlineFunction(spec, tree, { row: pos.line, column: pos.character });
+    const parts = this.deps.specFor(doc) && (await this.deps.parts(doc));
+    if (!parts) return undefined;
+    const pos = { row: editor.selection.active.line, column: editor.selection.active.character };
+    const { spec, tree } = regionAt(parts.own, parts.embedded, pos);
+    const outline = outlineFunction(spec, tree, pos);
     const key = outline ? `${doc.uri.toString()}@${doc.version}:${outline.span.start.row}:${outline.span.start.column}` : '';
     if (key && key === this.outlined) return outline;
     this.outlined = key;

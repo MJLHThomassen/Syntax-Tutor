@@ -1,4 +1,4 @@
-import { Language, Parser, type Tree } from 'web-tree-sitter';
+import { Language, Parser, type Range, type Tree } from 'web-tree-sitter';
 import type { LanguageSpec } from './model';
 
 /** Reads one of the bundled .wasm files (the tree-sitter runtime or a grammar) by its file name. */
@@ -56,9 +56,12 @@ export class Parsers {
     }
   }
 
-  /** Parse `text`; with `oldTree` (already edited, see editTree) only the changed parts are re-parsed. */
-  parse(languageId: string, text: string, oldTree?: Tree): Tree | undefined {
-    return this.byLanguage.get(languageId)?.parse(text, oldTree) ?? undefined;
+  /**
+   * Parse `text`; with `oldTree` (already edited, see editTree) only the changed parts are re-parsed.
+   * With `includedRanges`, only those parts of `text` are parsed (an embedded language), in `text`'s coordinates.
+   */
+  parse(languageId: string, text: string, oldTree?: Tree, includedRanges?: Range[]): Tree | undefined {
+    return this.byLanguage.get(languageId)?.parse(text, oldTree, includedRanges ? { includedRanges } : undefined) ?? undefined;
   }
 
   /** The loaded grammar for a language (node types etc.), for tests and tools. */
