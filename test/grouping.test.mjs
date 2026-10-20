@@ -106,6 +106,16 @@ describe('operator grouping', () => {
     assert.equal(here('*'), '↳ **Here:** `*` combines `second_long_name` and `third_long_name`.');
   });
 
+  test('CSS: calc() with real precedence (the grammar groups left to right); `/` outside calc() is no division', async () => {
+    const { here } = await parse('css', 'css', '.a { width: calc(100% - 2 * var(--gap) + 1px); margin: calc((1rem + 2px) / 3); grid-area: 1 / 2 / 3; }');
+    assert.equal(here('*'), `↳ **Here:** \`*\` combines \`2\` and \`var(--gap)\`.\n\n${grouped('(100% - (2 * var(--gap))) + 1px')}`);
+    assert.match(here('-'), /`-` combines `100%` and `2 \* var\(--gap\)`/);
+    assert.match(here('+'), /`\+` combines `100% - 2 \* var\(--gap\)` and `1px`/);
+    assert.equal(here('+', 1), undefined); // a lone `+` inside the parentheses
+    assert.equal(here('/'), undefined); // a lone `/` (the parentheses are an operand)
+    assert.equal(here('/', 1), undefined); // grid-area: start / end lines, not a division
+  });
+
   test('Explain This Line shows the grouping for its operators', async () => {
     const { spec, tree } = await parse('go', 'go', 'package main\nfunc f() {\n\tx := a + b*c\n}');
     const items = explainLines(spec, tree, 2, 2).items;

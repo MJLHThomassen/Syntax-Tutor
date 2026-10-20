@@ -65,7 +65,7 @@ async function run() {
   assert.ok(hs, 'no scope highlighted from hover');
   results.push(['rust hover scope lines', `${hs.primary.start.row + 1}-${hs.primary.end.row + 1}`]);
 
-  // Every other language: a `return` hover (HTML: a tag name) from the right spec, via VS Code's language id.
+  // Every other language: a `return` hover (HTML: a tag name, CSS: a property) from the right spec, via VS Code's language id.
   for (const [file, needle, label, token = 'return', offset = 0] of [
     ['tour.c', 'return a + b', 'C keyword'],
     ['tour.cpp', 'return "shape"', 'C\\+\\+ keyword'],
@@ -75,6 +75,7 @@ async function run() {
     ['tour.tsx', 'return (', 'TypeScript keyword'],
     ['tour.py', 'return a / b', 'Python keyword'],
     ['tour.html', '<section id', 'HTML element', '<section>', 1],
+    ['tour.css', 'display: flex', 'CSS property', 'display'],
     ['tour.vue', 'v-if="todos', 'Vue directive', 'v-if'],
     // Embedded languages: the <script setup lang="ts"> and the template's expressions are TypeScript.
     ['tour.vue', 'function add', 'TypeScript keyword', 'function'],

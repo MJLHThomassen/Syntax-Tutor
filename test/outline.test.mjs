@@ -171,4 +171,12 @@ describe('Explain This Function', () => {
     const parsers = await Parsers.load(readWasm, [spec]);
     assert.equal(outlineFunction(spec, parsers.parse(spec.id, src), at(src, 'const top')), undefined);
   });
+
+  test('CSS has no functions: calc() and friends are not outlined', async () => {
+    const spec = require('../dist/test/lang-css.js').css;
+    const parsers = await Parsers.load(readWasm, [spec]);
+    const src = readFileSync(new URL('../samples/tour.css', import.meta.url), 'utf8');
+    const tree = parsers.parse(spec.id, src);
+    for (const needle of ['calc(100%', 'display: flex', '@media screen', 'from {']) assert.equal(outlineFunction(spec, tree, at(src, needle)), undefined, needle);
+  });
 });

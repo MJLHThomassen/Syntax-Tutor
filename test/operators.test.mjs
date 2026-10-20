@@ -22,6 +22,7 @@ const LANGS = [
   ['typescript', 'tsx', ['tour.tsx']],
   // HTML explains `<!DOCTYPE html>` as a whole, so its `<!` has no doc key of its own; the sample check covers it.
   ['html', 'html', ['tour.html', 'comments/comments.html'], ['<!']],
+  ['css', 'css', ['tour.css', 'comments/comments.css']],
 ];
 
 /** Tokens made only of punctuation: operators and separators. Brackets and quotes are covered elsewhere. */

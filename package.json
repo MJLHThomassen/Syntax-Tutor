@@ -1,7 +1,7 @@
 {
   "name": "syntax-tutor",
   "displayName": "Syntax Tutor",
-  "description": "Learn a programming language while you read code: hover explanations for keywords, operators and built-ins, plus marker-style highlighting of the scope a keyword belongs to. Go, Rust, C, C++, C#, JavaScript, TypeScript, Python, HTML and Vue.",
+  "description": "Learn a programming language while you read code: hover explanations for keywords, operators and built-ins, plus marker-style highlighting of the scope a keyword belongs to. Go, Rust, C, C++, C#, JavaScript, TypeScript, Python, HTML, CSS and Vue.",
   "version": "0.3.0",
   "publisher": "MJLHThomassen",
   "license": "MIT",
@@ -53,6 +53,8 @@
     "python",
     "html",
     "vue",
+    "css",
+    "stylesheet",
     "doc comments"
   ],
   "activationEvents": [
@@ -67,6 +69,7 @@
     "onLanguage:typescriptreact",
     "onLanguage:python",
     "onLanguage:html",
+    "onLanguage:css",
     "onLanguage:vue"
   ],
   "main": "./dist/extension.js",
@@ -96,23 +99,23 @@
       "editor/context": [
         {
           "command": "syntaxTutor.explainLine",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|vue)$/",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/",
           "group": "navigation@90"
         },
         {
           "command": "syntaxTutor.explainFunction",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|vue)$/",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/",
           "group": "navigation@91"
         }
       ],
       "commandPalette": [
         {
           "command": "syntaxTutor.explainLine",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|vue)$/"
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/"
         },
         {
           "command": "syntaxTutor.explainFunction",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|vue)$/"
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/"
         }
       ]
     },
@@ -121,7 +124,7 @@
         "command": "syntaxTutor.explainLine",
         "key": "ctrl+shift+alt+e",
         "mac": "cmd+shift+alt+e",
-        "when": "editorTextFocus && editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|vue)$/"
+        "when": "editorTextFocus && editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/"
       }
     ],
     "configuration": {
@@ -244,6 +247,7 @@
     "tree-sitter-c": "0.24.1",
     "tree-sitter-c-sharp": "0.23.5",
     "tree-sitter-cpp": "0.23.4",
+    "tree-sitter-css": "0.25.0",
     "tree-sitter-go": "0.25.0",
     "tree-sitter-html": "0.23.2",
     "tree-sitter-javascript": "0.25.0",

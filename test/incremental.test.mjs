@@ -21,6 +21,8 @@ const LANGS = [
   ['python', 'python', 'tour.py', { comment: '#' }],
   // HTML comments need a closing marker, and are inserted before tag lines (not in <script>/<style> text).
   ['html', 'html', 'tour.html', { comment: '<!--', close: ' -->', lines: /^\s*<[a-zA-Z/!]/ }],
+  // CSS only has block comments; they go before declarations, selectors and at-rules.
+  ['css', 'css', 'tour.css', { comment: '/*', close: ' */', lines: /^\s*([a-z-]+\s*:|[.#@:&]|[a-z][\w-]*\s*[{,[:.])/ }],
 ];
 
 /** Lines that start a statement, before which a comment line can be inserted. */

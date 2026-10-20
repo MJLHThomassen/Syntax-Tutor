@@ -12,7 +12,7 @@ const { Parsers, parseEmbedded, regionAt, explain, scopeFor, explainDocumentLine
 
 const lang = (file, name) => require(`../dist/test/lang-${file}.js`)[name];
 const vue = lang('vue', 'vue');
-const EMBEDDED = [lang('javascript', 'javascript'), lang('typescript', 'typescript')];
+const EMBEDDED = [lang('javascript', 'javascript'), lang('typescript', 'typescript'), lang('css', 'css')];
 const TOUR = readFileSync(new URL('../samples/tour.vue', import.meta.url), 'utf8');
 
 async function component(src) {
@@ -95,6 +95,16 @@ describe('Vue', () => {
     assert.equal(c.language('n * 2'), 'javascript');
     assert.match(c.hover('*'), /JavaScript operator/);
     assert.equal(c.language('export default'), 'javascript');
+  });
+
+  test('the <style> is CSS', async () => {
+    const c = await component(TOUR);
+    assert.equal(c.language('opacity: 0.6'), 'css');
+    assert.match(c.hover('opacity: 0.6'), /^\*\*`opacity`\*\* · CSS property/);
+    assert.match(c.hover('.todos {', 1), /^\*\*Class selector\*\* · Matches elements whose `class` attribute contains `todos`/);
+    // A selector highlights its whole rule, in the file's coordinates.
+    const rule = c.scope('li.done', 1);
+    assert.equal(TOUR.split('\n')[rule.primary.start.row].startsWith('li.done'), true);
   });
 
   test('scopes: an element in the template, an `if` in the script', async () => {

@@ -16,6 +16,7 @@ before(async () => {
   L.c = await load('c', 'c', 'tour.c');
   L.py = await load('python', 'python', 'tour.py');
   L.html = await load('html', 'html', 'tour.html');
+  L.css = await load('css', 'css', 'tour.css');
 });
 
 /** Explain the line(s) starting at the line containing `needle`. */
@@ -134,6 +135,24 @@ describe('explain this line', () => {
     assert.equal(fstrings.length, 1);
     assert.match(fstrings[0].markdown, /^\*\*`f"héllo 👋 \{first \+ 1\} and \{squares!s\}"`\*\* · Python f-string/);
     assert.ok(f.items.some((i) => i.text === 'squares'), 'code inside { } is explained');
+  });
+
+  test('CSS: declarations, rules and at-rules, with values as one entry each', () => {
+    const decl = lines(L.css, '  border: 1px solid #ddd;');
+    assert.equal(decl.structure, 'This line is the `border` declaration (line 34).');
+    assert.deepEqual(heads(decl), [
+      'border | **`border`** · CSS property',
+      ': | **`property: value`** · CSS syntax',
+      '1px | **`1px`** · CSS length',
+      'solid | **`solid`** · CSS keyword',
+      '#ddd | **`#ddd`** · CSS color',
+    ]);
+    const rule = lines(L.css, '.card {', 11);
+    assert.equal(rule.structure, 'These lines are the rule `.card` (lines 27–38).');
+    assert.equal(rule.items.find((i) => i.text === 'display').scope.label, 'the block of the rule `.card`');
+    const ref = lines(L.css, '  gap: var(--gap);').items.find((i) => i.text === '--gap');
+    assert.match(ref.markdown, /\*\*Custom property reference\*\* · Reads the custom property `--gap`, declared on line 9/);
+    assert.equal(lines(L.css, '@keyframes spin').structure, 'This line starts the `@keyframes` rule (lines 89–99).');
   });
 
   test('code inside an interpolation is still explained', () => {

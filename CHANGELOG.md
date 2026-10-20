@@ -11,6 +11,16 @@
   - Explain This Line says which element a line starts ("This line starts the `<section>` element (lines 33–40)"), explains an end tag or the doctype as one part, and nests the content of elements opened in the selected lines.
   - The contents of `<script>` and `<style>` are not explained yet.
 - Hovering the first character of a token right after an empty node (such as `</script>` after an empty script) now works.
+- **CSS support**:
+  - Hovers for about 240 properties (box model, flexbox, grid, typography, colors and backgrounds, borders and shadows, transforms, transitions and animations, logical properties, container queries, ...) with an example and an MDN link; inherited properties and vendor prefixes (`-webkit-...`) are pointed out, and so are unknown (misspelled) properties.
+  - Values are explained for the property they belong to (`flex` in `display: flex`, `linear` in `animation`), including the global keywords (`inherit`, `initial`, `unset`, `revert`), the 148 named colors, hex colors (`#3366ff` is `rgb(51 102 255)`), color channels in `rgb()`/`hsl()`/`oklch()`, and numbers with units: `1.5rem` is "1.5 × the root font size: 24px with the default 16px", and a percentage says what it is a percentage of.
+  - About 80 functions (`calc()`, `var()`, `clamp()`, `min()`/`max()`, colors, gradients, `repeat()`/`minmax()`, transforms, filters, ...). In `calc()`, operator grouping follows CSS's precedence; a `/` that separates values (`aspect-ratio: 16 / 9`, `rgb(0 0 0 / 50%)`) is explained as such.
+  - Selectors: type, class, id, universal and attribute selectors (with every match operator), combinators (with what the selector matches, read in plain words), about 55 pseudo-classes and 15 pseudo-elements, the nesting selector `&`, and the **specificity** of the selector.
+  - At-rules (`@media`, `@import`, `@font-face`, `@keyframes`, `@supports`, `@layer`, `@container`, `@property`, `@page`, `@scope`, ...), media types and features, keyframe selectors, and the at-rules of Sass and Tailwind (which aren't CSS).
+  - Scopes: a selector highlights its rule, a property its declaration, an at-rule keyword the whole at-rule. Custom properties and `@keyframes` names say where they are declared and used, and `var(--x)` or an animation name highlights the declaration.
+  - Comments: `/* */`, `/*! */` (kept by minifiers), Stylelint, Prettier and Autoprefixer directives, source maps, and a warning for `//`, which isn't a comment in CSS.
+  - Works on stylesheets embedded in other files too (parsed with included ranges): `Parsers.parse` takes optional `includedRanges`.
+- Explain This Line can name constructs per language (`LanguageSpec.nodeLabel`): "This line is the `display` declaration", "This line starts the `@media` rule".
 
 ## 0.3.0
 

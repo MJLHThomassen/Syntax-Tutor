@@ -1,5 +1,6 @@
 import type { Node, Tree } from 'web-tree-sitter';
 import type { Injection } from './embedded';
+import type { Grouping } from './grouping';
 
 /**
  * What a doc entry describes. Identifiers only match entries of the
@@ -98,6 +99,23 @@ export interface LanguageSpec {
   /** Extra check whether a doc entry applies to an identifier in context. */
   acceptIdentifierDoc?(node: Node, field: string | null, entry: DocEntry): boolean;
   /**
+   * Context-aware doc for an identifier, tried before the table (CSS: `flex` is a
+   * property in one place and a `display` value in another). Without a role scope,
+   * an identifier with such a doc gets the scope a keyword with that doc would get.
+   */
+  identifierDoc?(node: Node, field: string | null): DocEntry | undefined;
+  /**
+   * Nodes with text of their own between their children (CSS `1rem` is a number
+   * node with only `rem` as a child): hovering that text gives the node itself.
+   */
+  ownTextTypes?: ReadonlySet<string>;
+  /**
+   * How an operator's expression is grouped, for grammars whose tree doesn't follow
+   * the language's precedence (tree-sitter-css parses `a - b * c` as `(a - b) * c`).
+   * `null`: no grouping note; `undefined`: work it out from the tree (the default).
+   */
+  grouping?(token: Node): Grouping | null | undefined;
+  /**
    * Doc for a whole literal whose kind depends on more than its node type (Python's
    * `r"..."`, `f"..."`, `b"..."` are all `string` nodes). Tried before `"#<node type>"`.
    */
@@ -124,8 +142,9 @@ export interface LanguageSpec {
    */
   scopeBoundaries?(scope: Node, token: Node): Node[] | undefined;
   /**
-   * What Explain This Line calls a construct, e.g. "the `<div>` element".
-   * Default: worked out from its node type, first keyword and name.
+   * What Explain This Line calls a construct, e.g. "the `<div>` element", "the
+   * rule `.card`", "the block of the `@media` rule". Default: worked out from its
+   * node type, first keyword and name.
    */
   labelOf?(node: Node): string | undefined;
   /**

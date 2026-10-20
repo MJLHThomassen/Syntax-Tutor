@@ -33,6 +33,7 @@ async function document(spec, embeddable, src) {
 
 const html = require('../dist/test/lang-html.js').html;
 const javascript = require('../dist/test/lang-javascript.js').javascript;
+const css = require('../dist/test/lang-css.js').css;
 
 const PAGE = `<!DOCTYPE html>
 <html>
@@ -111,6 +112,22 @@ describe('embedded languages', () => {
     assert.equal(outline.rows[1].depth, 1);
     assert.match(outline.rows[2].text, /^Sets /);
     assert.equal(outline.span.start.row, 6);
+  });
+
+  test('HTML: <style> contents are CSS', async () => {
+    const src = '<html>\n<head>\n  <style>\n    .card > p { color: teal; margin: calc(1rem + 2px); }\n  </style>\n</head>\n</html>\n';
+    const doc = await document(html, [javascript, css], src);
+    assert.deepEqual(doc.parts.embedded.map((r) => r.spec.id), ['css']);
+    assert.match(doc.hover('color'), /^\*\*`color`\*\* · CSS property/);
+    assert.match(doc.hover('rem'), /CSS/);
+    assert.equal(doc.regionOf('<style>', 0, 1).spec.id, 'html');
+    const rule = doc.scope('.card', 0, 1);
+    assert.equal(rule.primary.start.row, 3);
+  });
+
+  test('a <style lang="scss"> has no grammar here, so it stays unexplained HTML text', async () => {
+    const doc = await document(html, [javascript, css], '<style lang="scss">\n$x: 1px;\n.a { b: $x; }\n</style>\n');
+    assert.deepEqual(doc.parts.embedded, []);
   });
 
   test('a <script> with a data type (JSON) is not parsed as JavaScript', async () => {

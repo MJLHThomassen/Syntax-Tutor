@@ -119,7 +119,7 @@ function scopesOf(spec: LanguageSpec, token: Node, startRow: number): { depth: n
     if (!scope) {
       const short = header.length > 40 ? `${header.slice(0, 39)}…` : header;
       const label = braced
-        ? bracketContext(first) ?? 'a block'
+        ? spec.labelOf?.(a) ?? bracketContext(first) ?? 'a block'
         : indented
           ? `the body of ${ownerLabel(a.parent!)}`
           : `the \`${short || firstLine(a, 40)}\` branch`;
@@ -130,12 +130,12 @@ function scopesOf(spec: LanguageSpec, token: Node, startRow: number): { depth: n
 }
 const PUNCTUATION = /^[,;.:]$/;
 
-/** Leaf tokens overlapping rows [startRow, endRow], in order. Comments count as one token. */
-function leaves(tree: Tree, startRow: number, endRow: number): Node[] {
+/** Leaf tokens overlapping rows [startRow, endRow], in order. Comments count as one token, and so do nodes of the `ownText` types (CSS `1rem`). */
+function leaves(tree: Tree, startRow: number, endRow: number, ownText?: ReadonlySet<string>): Node[] {
   const out: Node[] = [];
   const visit = (n: Node) => {
     if (n.endPosition.row < startRow || n.startPosition.row > endRow) return;
-    if (n.childCount === 0 || n.type.endsWith('comment')) {
+    if (n.childCount === 0 || n.type.endsWith('comment') || ownText?.has(n.type)) {
       if (n.text.trim()) out.push(n);
       return;
     }
@@ -220,7 +220,7 @@ export function explainLines(
 ): LineExplanation {
   const range: Span = { start: { row: startRow, column: 0 }, end: { row: endRow, column: Number.MAX_SAFE_INTEGER } };
   const items: LineItem[] = [];
-  const tokens = leaves(tree, startRow, endRow);
+  const tokens = leaves(tree, startRow, endRow, spec.ownTextTypes);
   const literalsDone = new Set<number>();
   for (const token of tokens) {
     // The pieces of a string literal (`"`, the text, `"`, a `$` or `r#` prefix) are one entry for the

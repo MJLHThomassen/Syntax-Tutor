@@ -13,6 +13,8 @@ Supports:
 - **JavaScript** and **TypeScript** (including JSX/TSX)
 - **Python**
 - **HTML**
+- **CSS** (also as a stylesheet language: selectors, properties, values, units and at-rules)
+- **Vue** single-file components: the template, the script (JavaScript or TypeScript) and the style
 
 Support for more languages can be added on request. Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/) so any language supported by it can be added easily.
 
@@ -30,11 +32,13 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
   In HTML you can hover elements, attributes, attribute values and character references. An attribute's meaning follows its element (`type` on `<input>`, `<button>` or `<script>`), values such as `type="email"` or `target="_blank"` are explained, `&#169;` shows the character it stands for, and `for="email"` or `href="#menu"` points to the element it refers to.
 
+  In CSS, properties, value keywords (explained for the property they belong to: `flex` in `display: flex`), units (`1.5rem` is "1.5 × the root font size: 24px with the default 16px"), colors (`#3366ff` is `rgb(51 102 255)`), functions such as `calc()`, `var()` and `clamp()`, selectors (with their specificity), pseudo-classes, pseudo-elements, at-rules and media features all get an explanation.
+
 - **Scope highlighting.** See at a glance which construct a keyword belongs to.
 
   ![Scope highlight following the cursor over func, else and range](images/scope.gif)
 
-  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline (Python blocks have no closing bracket: their indentation ends them). For example, `func`, `fn`, `def` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop. In HTML, a tag name highlights its whole element and outlines its start and end tags.
+  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline (Python blocks have no closing bracket: their indentation ends them). For example, `func`, `fn`, `def` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop. In HTML, a tag name highlights its whole element and outlines its start and end tags. In CSS, a selector highlights its whole rule, a property its declaration, an at-rule keyword the whole at-rule, and `var(--x)` or an animation name the declaration of that custom property or `@keyframes`.
 
 - **Jump targets.** See where `return`, `break` and other jumps take you.
 
@@ -69,7 +73,7 @@ Run these from the Command Palette (`Ctrl+Shift+P`, `Cmd+Shift+P` on Mac).
 
 - **Syntax Tutor: Explain This Line** opens the Explain This Line panel for the line the cursor is on, or for all selected lines.
 
-  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript, Python and HTML files.
+  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript, Python, HTML, CSS and Vue files.
 
 - **Syntax Tutor: Explain This Function** opens the same panel with an outline of the function the cursor is in.
 
@@ -154,8 +158,8 @@ To find the node type names for a construct, paste some code into the playground
 ### Adding a language
 
 1. Add the grammar package (it should ship a `.wasm` file) and copy the file in `scripts/build.mjs`.
-2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles). For a language with indentation blocks set `indentedBlocks` (see `src/docs/python.ts`); `comments.isDocString` lets string literals act as doc comments, like Python docstrings. For markup, `scopeBoundaries`, `labelOf`, `contentOf` and `extentOf` say how elements are outlined, named and nested (see `src/docs/html.ts`). An HTML-like language can start from `makeHtmlSpec(options)` in `src/docs/html.ts`, with its own hooks for elements, attributes and values.
-3. Add it to `ALL_SPECS` in `src/extension.ts`, and add `onLanguage:<id>` to `activationEvents`.
+2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles). For a language with indentation blocks set `indentedBlocks` (see `src/docs/python.ts`); `comments.isDocString` lets string literals act as doc comments, like Python docstrings. For markup, `scopeBoundaries`, `labelOf`, `contentOf` and `extentOf` say how elements are outlined, named and nested (see `src/docs/html.ts`). An HTML-like language can start from `makeHtmlSpec(options)` in `src/docs/html.ts`, with its own hooks for elements, attributes and values. When one node type covers both built-in and user-chosen names (CSS's `plain_value` is `flex` or an animation name), `identifierDoc` gives the built-ins their docs in context while `role` explains the user's names (see `src/docs/css.ts`).
+3. Add it to `ALL_SPECS` in `src/extension.ts`, add `onLanguage:<id>` to `activationEvents`, and add the language id to every `editorLangId =~ /^(...)$/` regex in `package.json` (menus and keybindings).
 4. Add `samples/tour.<ext>` and `test/<lang>.test.mjs`. `node scripts/build.mjs --lang <lang>` rebuilds just that language's test bundle.
 
 ## Tests
