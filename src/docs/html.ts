@@ -2,6 +2,7 @@ import type { Node } from 'web-tree-sitter';
 import { codeSpan } from '../core/markdown';
 import type { CommentStyle, DocEntry, DocTable, JumpTarget, LanguageSpec } from '../core/model';
 import { htmlComments } from './comments';
+import { blockInjections, eventHandlerInjections } from './webInjections';
 
 /*
  * HTML: elements, attributes (with meanings that depend on the element), attribute
@@ -1798,4 +1799,9 @@ function decodeFragment(s: string): string {
   }
 }
 
-export const html: LanguageSpec = makeHtmlSpec();
+export const html: LanguageSpec = {
+  ...makeHtmlSpec(),
+  // `<script>` is JavaScript, `<style>` CSS, and `onclick="..."` & co. JavaScript (see src/core/embedded.ts).
+  injections: (tree) => [...blockInjections(tree), ...eventHandlerInjections(tree)],
+  embeds: ['javascript', 'css'],
+};
