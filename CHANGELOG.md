@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - **HTML support**:
   - Hovers for over 110 elements (document structure, sections, text, inline text, media, tables, forms, interactive elements, `<template>`, `<slot>`), each with an example and an MDN link. Void elements say they have no end tag; custom elements (`<my-widget>`), SVG/MathML elements, obsolete and unknown elements get their own explanation.

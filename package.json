@@ -2,7 +2,7 @@
   "name": "syntax-tutor",
   "displayName": "Syntax Tutor",
   "description": "Learn a programming language while you read code: hover explanations for keywords, operators and built-ins, plus marker-style highlighting of the scope a keyword belongs to. Go, Rust, C, C++, C#, JavaScript, TypeScript, Python, HTML, CSS and Vue.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "MJLHThomassen",
   "license": "MIT",
   "repository": {

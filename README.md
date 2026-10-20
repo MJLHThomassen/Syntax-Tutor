@@ -127,7 +127,7 @@ To build a `.vsix` and install it in your normal VS Code:
 
 ```bash
 npm run package
-code --install-extension syntax-tutor-0.3.0.vsix
+code --install-extension syntax-tutor-0.4.0.vsix
 ```
 
 To try the web version (as on vscode.dev), run this and open http://localhost:3000. It downloads VS Code for the web the first time.
