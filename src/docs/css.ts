@@ -1416,7 +1416,8 @@ function nodeLabel(node: Node): string | undefined {
 export const css: LanguageSpec = {
   comments: cssComments,
   id: 'css',
-  languageIds: ['css'],
+  // Tailwind CSS IntelliSense and PostCSS Language Support give `.css` files their own language ids.
+  languageIds: ['css', 'tailwindcss', 'postcss'],
   displayName: 'CSS',
   wasm: 'tree-sitter-css.wasm',
   fence: 'css',

@@ -19,6 +19,13 @@ const scopeText = (...args) => {
   return s && L.text(s.primary);
 };
 
+test('CSS also handles .css files that Tailwind CSS IntelliSense or PostCSS give their own language id', () => {
+  const { css } = require('../dist/test/lang-css.js');
+  assert.deepEqual(css.languageIds, ['css', 'tailwindcss', 'postcss']);
+  const pkg = require('../package.json');
+  for (const id of ['tailwindcss', 'postcss']) assert.ok(pkg.activationEvents.includes(`onLanguage:${id}`), id);
+});
+
 describe('CSS hovers', () => {
   test('the sample parses cleanly', () => {
     assert.equal(L.tree.rootNode.hasError, false);

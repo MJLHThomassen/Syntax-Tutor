@@ -70,6 +70,8 @@
     "onLanguage:python",
     "onLanguage:html",
     "onLanguage:css",
+    "onLanguage:tailwindcss",
+    "onLanguage:postcss",
     "onLanguage:vue"
   ],
   "main": "./dist/extension.js",
@@ -99,23 +101,23 @@
       "editor/context": [
         {
           "command": "syntaxTutor.explainLine",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|tailwindcss|postcss|vue)$/",
           "group": "navigation@90"
         },
         {
           "command": "syntaxTutor.explainFunction",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/",
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|tailwindcss|postcss|vue)$/",
           "group": "navigation@91"
         }
       ],
       "commandPalette": [
         {
           "command": "syntaxTutor.explainLine",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/"
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|tailwindcss|postcss|vue)$/"
         },
         {
           "command": "syntaxTutor.explainFunction",
-          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/"
+          "when": "editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|tailwindcss|postcss|vue)$/"
         }
       ]
     },
@@ -124,7 +126,7 @@
         "command": "syntaxTutor.explainLine",
         "key": "ctrl+shift+alt+e",
         "mac": "cmd+shift+alt+e",
-        "when": "editorTextFocus && editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|vue)$/"
+        "when": "editorTextFocus && editorLangId =~ /^(go|rust|c|cpp|csharp|javascript|javascriptreact|typescript|typescriptreact|python|html|css|tailwindcss|postcss|vue)$/"
       }
     ],
     "configuration": {
