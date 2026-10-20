@@ -650,3 +650,35 @@ export const pythonComments: CommentStyle = {
   tags: { pydoc: pyDocTags },
   formatNames: FORMAT_NAMES,
 };
+
+// ------------------------------------------------------------------- HTML
+
+export const htmlComments: CommentStyle = {
+  kinds: [
+    {
+      test: /^<!--\s*prettier-ignore\b/,
+      category: 'directive',
+      title: '`<!-- prettier-ignore -->`',
+      summary: 'Tells the Prettier formatter to leave the next element exactly as it is written.',
+      example: '<!-- prettier-ignore -->\n<pre>  keep   this   spacing  </pre>',
+      link: 'https://prettier.io/docs/ignore',
+    },
+    {
+      test: /^<!--\s*(TODO|FIXME|HACK|XXX|NOTE|BUG)\b/,
+      category: 'note',
+      title: 'TODO / FIXME note',
+      summary: 'A marker for unfinished work or a known problem. The browser ignores it, but editors and linters can list all of them (e.g. the "Todo Tree" extension).',
+    },
+    {
+      test: /^<!--/,
+      category: 'plain',
+      title: '`<!-- -->` comment',
+      summary: 'An **HTML comment**: everything between `<!--` and `-->` is ignored by the browser and not shown on the page. It can span several lines.',
+      details: 'Comments are still sent to the browser, so anyone can read them with "View source": never put secrets in them. They can\'t be nested. Inside `<script>` and `<style>`, use JavaScript or CSS comments instead.',
+      example: '<!-- Main navigation -->\n<nav>…</nav>\n\n<!--\n<p>Hidden for now</p>\n-->',
+      link: 'https://developer.mozilla.org/en-US/docs/Web/HTML/Guides/Comments',
+    },
+  ],
+  tags: {},
+  formatNames: FORMAT_NAMES,
+};

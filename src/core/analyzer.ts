@@ -63,7 +63,9 @@ function isComment(spec: LanguageSpec, n: Node): boolean {
  */
 export function tokenAt(tree: Tree, point: Point, lookBehind = false): Node | undefined {
   const at = (p: Point): Node | undefined => {
-    const n = tree.rootNode.descendantForPosition(p);
+    let n = tree.rootNode.descendantForPosition(p);
+    // A zero-width node (HTML's empty <script> text) hides the token starting at p: look at the character instead.
+    if (n && n.startIndex === n.endIndex) n = tree.rootNode.descendantForPosition(p, { row: p.row, column: p.column + 1 });
     // Leaves only, except comments: Rust's comment nodes have marker children around their text.
     if (!n || (n.childCount > 0 && !n.type.endsWith('comment')) || n.isMissing) return undefined;
     // descendantForPosition may return a token ending exactly at p.
@@ -123,7 +125,7 @@ function identifierInfo(spec: LanguageSpec, token: Node): IdentifierInfo | undef
 }
 
 function renderDoc(spec: LanguageSpec, entry: DocEntry, title: string): string {
-  const parts = [`**\`${entry.title ?? title}\`** · ${spec.displayName} ${KIND_LABEL[entry.kind]}`, entry.summary];
+  const parts = [`**\`${entry.title ?? title}\`** · ${spec.displayName} ${entry.label ?? KIND_LABEL[entry.kind]}`, entry.summary];
   if (entry.details) parts.push(entry.details);
   if (entry.example) parts.push(`\`\`\`${spec.fence}\n${entry.example}\n\`\`\``);
   if (entry.link) parts.push(`[Read more ↗](${entry.link})`);
@@ -209,6 +211,10 @@ export function scopeFor(
   }
   if (!scope || scope.equals(tree.rootNode)) return undefined;
 
+  const jump = spec.jumpTarget(token);
+  const custom = spec.scopeBoundaries?.(scope, token);
+  if (custom) return { primary: span(scope), boundaries: custom.map(span), related: jump && span(jump.node) };
+
   const boundaries = [span(token)];
   const end = lastLeaf(scope);
   // With indentation blocks only a bracket of the scope itself closes it, not one ending its last statement.
@@ -219,6 +225,5 @@ export function scopeFor(
     if (open && BRACKETS.has(open.type) && !open.equals(token)) boundaries.push(span(open));
   }
 
-  const jump = spec.jumpTarget(token);
   return { primary: span(scope), boundaries, related: jump && span(jump.node) };
 }

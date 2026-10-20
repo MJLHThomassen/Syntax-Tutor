@@ -15,6 +15,7 @@ before(async () => {
   L.cs = await load('csharp', 'csharp', 'tour.cs');
   L.c = await load('c', 'c', 'tour.c');
   L.py = await load('python', 'python', 'tour.py');
+  L.html = await load('html', 'html', 'tour.html');
 });
 
 /** Explain the line(s) starting at the line containing `needle`. */
@@ -142,5 +143,28 @@ describe('explain this line', () => {
     assert.match(r.items.find((i) => i.text.startsWith('$"')).markdown, /^\*\*`\$"\{GetType\(\)\.Name\} with area/);
     assert.ok(texts.includes('GetType') && texts.includes('Name') && texts.includes('Area'), texts.join(' '));
     assert.equal(texts.filter((t) => t === '}').length, 0); // hole closers are covered by their opener
+  });
+
+  test('HTML: a tag line names its element; end tags and the doctype are one entry each', () => {
+    const r = lines(L.html, '<section id="menu">');
+    assert.equal(r.structure, 'This line starts the `<section>` element (lines 33–40).');
+    assert.deepEqual(heads(r), [
+      '< | **`<section>`** · HTML start tag',
+      'section | **`<section>`** · HTML element',
+      'id | **`id`** · HTML attribute',
+      '= | **`= (attribute value)`** · HTML syntax',
+      '"menu" | **`"menu"`** · HTML attribute value',
+    ]);
+    assert.deepEqual(lines(L.html, '      </ul>').items.map((i) => i.text), ['</ul>']);
+    assert.equal(lines(L.html, '<!DOCTYPE').structure, 'This line is the `<!DOCTYPE>` declaration (line 1).');
+  });
+
+  test('HTML: the content of elements opened in the selection is nested', () => {
+    const r = lines(L.html, '    <nav>', 6);
+    assert.equal(r.structure, 'These lines are the `<nav>` element (lines 18–24).');
+    const a = r.items.find((i) => i.text === 'a');
+    assert.equal(a.depth, 3); // nav > ul > li
+    assert.equal(a.scope.label, 'the `<li>` element');
+    assert.equal(r.items.find((i) => i.text === '</nav>').depth, 0);
   });
 });

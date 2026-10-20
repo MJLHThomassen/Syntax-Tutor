@@ -65,8 +65,8 @@ async function run() {
   assert.ok(hs, 'no scope highlighted from hover');
   results.push(['rust hover scope lines', `${hs.primary.start.row + 1}-${hs.primary.end.row + 1}`]);
 
-  // Every other language: a `return` hover from the right spec, via VS Code's language id.
-  for (const [file, needle, label] of [
+  // Every other language: a `return` hover (HTML: a tag name) from the right spec, via VS Code's language id.
+  for (const [file, needle, label, token = 'return', offset = 0] of [
     ['tour.c', 'return a + b', 'C keyword'],
     ['tour.cpp', 'return "shape"', 'C\\+\\+ keyword'],
     ['tour.cs', 'return best', 'C# keyword'],
@@ -74,11 +74,12 @@ async function run() {
     ['tour.ts', 'return Math.PI', 'TypeScript keyword'],
     ['tour.tsx', 'return (', 'TypeScript keyword'],
     ['tour.py', 'return a / b', 'Python keyword'],
+    ['tour.html', '<section id', 'HTML element', '<section>', 1],
   ]) {
     const { doc } = await open(file);
-    const h = await hoverText(doc, find(doc, needle));
-    assert.match(h, new RegExp(`🎓 \\*Syntax Tutor\\*\\n\\n\\*\\*\`return\`\\*\\* · ${label}`), `${file} (${doc.languageId})`);
-    results.push([`${file} [${doc.languageId}] hover return`, h]);
+    const h = await hoverText(doc, find(doc, needle, offset));
+    assert.match(h, new RegExp(`🎓 \\*Syntax Tutor\\*\\n\\n\\*\\*\`${token}\`\\*\\* · ${label}`), `${file} (${doc.languageId})`);
+    results.push([`${file} [${doc.languageId}] hover ${token}`, h]);
   }
 
   // Comments: a JSDoc @param tag explains itself and highlights the parameter it names.

@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **HTML support**:
+  - Hovers for over 110 elements (document structure, sections, text, inline text, media, tables, forms, interactive elements, `<template>`, `<slot>`), each with an example and an MDN link. Void elements say they have no end tag; custom elements (`<my-widget>`), SVG/MathML elements, obsolete and unknown elements get their own explanation.
+  - Hovers for global, ARIA, `data-*` and event handler (`onclick`) attributes and the element-specific ones, with meanings that follow the element: `type` on `<input>`, `<button>` or `<script>`, `name` on a form control or a `<meta>`, `value` on an `<input>` or `<option>`. Boolean attributes say so, and an attribute on an element it doesn't apply to gets a warning.
+  - Attribute values are explained too: input types, `target="_blank"`, every `rel` keyword, `method`, `loading`, ids and class names, URLs (`#fragment`, `mailto:`, relative or absolute). Values that refer to another element (`for="email"`, `href="#menu"`, `aria-describedby`) point to it and highlight it.
+  - Character references (`&amp;`, `&nbsp;`, `&#169;`, `&#x1F600;`) show the character they stand for. The doctype, start, end and self-closing tags (`<div/>` doesn't close a `<div>`!), stray end tags and `<!-- -->` comments (with `TODO`s and `<!-- prettier-ignore -->`) are explained.
+  - A tag name highlights its whole element and outlines its start and end tags; an attribute highlights itself.
+  - Explain This Line says which element a line starts ("This line starts the `<section>` element (lines 33–40)"), explains an end tag or the doctype as one part, and nests the content of elements opened in the selected lines.
+  - The contents of `<script>` and `<style>` are not explained yet.
+- Hovering the first character of a token right after an empty node (such as `</script>` after an empty script) now works.
+
 ## 0.3.0
 
 - **Python support**, with the same depth as the other languages:

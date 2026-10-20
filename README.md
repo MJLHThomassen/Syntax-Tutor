@@ -12,6 +12,7 @@ Supports:
 - **C#**
 - **JavaScript** and **TypeScript** (including JSX/TSX)
 - **Python**
+- **HTML**
 
 Support for more languages can be added on request. Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/) so any language supported by it can be added easily.
 
@@ -27,11 +28,13 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
   This works on keywords, operators, built-ins, literals and declaration names. You get a short explanation, an example and a link to the official docs. The same token gets a different explanation depending on where it appears: `*` in `*int` (pointer type), `*p` (dereference) and `a * b`, or `<-` as send, receive or channel direction. In an expression with several operators, an operator's hover also shows what it works on and how operator precedence groups the expression: in `a + b * c == d`, `+` combines `a` and `b * c`, grouped as `(a + (b * c)) == d`.
 
+  In HTML you can hover elements, attributes, attribute values and character references. An attribute's meaning follows its element (`type` on `<input>`, `<button>` or `<script>`), values such as `type="email"` or `target="_blank"` are explained, `&#169;` shows the character it stands for, and `for="email"` or `href="#menu"` points to the element it refers to.
+
 - **Scope highlighting.** See at a glance which construct a keyword belongs to.
 
   ![Scope highlight following the cursor over func, else and range](images/scope.gif)
 
-  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline (Python blocks have no closing bracket: their indentation ends them). For example, `func`, `fn`, `def` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop.
+  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline (Python blocks have no closing bracket: their indentation ends them). For example, `func`, `fn`, `def` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop. In HTML, a tag name highlights its whole element and outlines its start and end tags.
 
 - **Jump targets.** See where `return`, `break` and other jumps take you.
 
@@ -44,7 +47,7 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
   ![Hover on a @param tag in a TSDoc comment](images/doc-comment.png)
   ![The parameter of the selected tag is highlighted in code](images/doc-comment-param.png)
 
-  Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments, Python docstrings), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, `# noqa`, `# type:`, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`, Python docstring sections (`Args:`, NumPy `Parameters`, Sphinx `:param x:`) and doctests (`>>>`). A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
+  Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments, Python docstrings), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, `# noqa`, `# type:`, `<!-- prettier-ignore -->`, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`, Python docstring sections (`Args:`, NumPy `Parameters`, Sphinx `:param x:`) and doctests (`>>>`). A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
 
 - **Explain This Line.** Get every part of a line explained, in order, in a side panel.
 
@@ -66,7 +69,7 @@ Run these from the Command Palette (`Ctrl+Shift+P`, `Cmd+Shift+P` on Mac).
 
 - **Syntax Tutor: Explain This Line** opens the Explain This Line panel for the line the cursor is on, or for all selected lines.
 
-  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript and Python files.
+  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript, Python and HTML files.
 
 - **Syntax Tutor: Explain This Function** opens the same panel with an outline of the function the cursor is in.
 
@@ -151,7 +154,7 @@ To find the node type names for a construct, paste some code into the playground
 ### Adding a language
 
 1. Add the grammar package (it should ship a `.wasm` file) and copy the file in `scripts/build.mjs`.
-2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles). For a language with indentation blocks set `indentedBlocks` (see `src/docs/python.ts`); `comments.isDocString` lets string literals act as doc comments, like Python docstrings.
+2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles). For a language with indentation blocks set `indentedBlocks` (see `src/docs/python.ts`); `comments.isDocString` lets string literals act as doc comments, like Python docstrings. For markup, `scopeBoundaries`, `labelOf`, `contentOf` and `extentOf` say how elements are outlined, named and nested (see `src/docs/html.ts`). An HTML-like language can start from `makeHtmlSpec(options)` in `src/docs/html.ts`, with its own hooks for elements, attributes and values.
 3. Add it to `ALL_SPECS` in `src/extension.ts`, and add `onLanguage:<id>` to `activationEvents`.
 4. Add `samples/tour.<ext>` and `test/<lang>.test.mjs`. `node scripts/build.mjs --lang <lang>` rebuilds just that language's test bundle.
 

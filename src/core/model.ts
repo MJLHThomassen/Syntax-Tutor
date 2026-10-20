@@ -30,6 +30,11 @@ export interface DocEntry {
   link?: string;
   /** Overrides the heading (defaults to the token text). */
   title?: string;
+  /**
+   * Overrides what the heading calls the entry after the language name (default:
+   * a label for `kind`, such as "keyword"). E.g. "**`<div>`** · HTML element".
+   */
+  label?: string;
 }
 
 /**
@@ -107,6 +112,29 @@ export interface LanguageSpec {
   injections?(tree: Tree): Injection[];
   /** Spec ids `injections` may return, so their grammars load together with this one. */
   embeds?: readonly string[];
+  /**
+   * The parts of a highlighted scope that get an outline, for scopes whose edges
+   * aren't a keyword and a closing bracket (HTML: an element's start and end tags).
+   * Default: the token itself and the scope's closing bracket.
+   */
+  scopeBoundaries?(scope: Node, token: Node): Node[] | undefined;
+  /**
+   * What Explain This Line calls a construct, e.g. "the `<div>` element".
+   * Default: worked out from its node type, first keyword and name.
+   */
+  labelOf?(node: Node): string | undefined;
+  /**
+   * The node that really covers a construct, when the grammar's node is bigger:
+   * tree-sitter-html lets a void element (`<br>`) swallow the text after it. Used
+   * for the line range Explain This Line reports. Default: the node itself.
+   */
+  extentOf?(node: Node): Node;
+  /**
+   * For constructs that nest without braces or indentation (HTML elements): the
+   * range (string indices) of their content. In Explain This Line, the parts in
+   * that range are nested one level deeper, "inside" `labelOf(node)`.
+   */
+  contentOf?(node: Node): { startIndex: number; endIndex: number } | undefined;
 }
 
 /** How tags and markup are written inside doc comments. */

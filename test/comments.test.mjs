@@ -20,6 +20,7 @@ before(async () => {
     ['js', 'javascript', 'javascript', 'comments.js'],
     ['ts', 'typescript', 'typescript', 'comments.ts'],
     ['py', 'python', 'python', 'comments.py'],
+    ['html', 'html', 'html', 'comments.html'],
   ]) {
     L[key] = await load(file, exp, `comments/${sample}`);
   }
@@ -219,5 +220,24 @@ describe('Python comments and docstrings', () => {
     assert.equal(explain(spec, tree, at(src, 'Plain comments', 0, 1), { comments: 'doc' }), undefined);
     assert.ok(explain(spec, tree, at(src, 'Return the area', 0, 1), { comments: 'doc' }));
     assert.equal(explain(spec, tree, at(src, 'Return the area', 0, 1), { comments: 'off' }), undefined);
+  });
+});
+
+describe('HTML comments', () => {
+  test('<!-- --> comments are one block each; TODOs, directives and trailing comments', () => {
+    assert.match(probe(L.html, 'A plain comment').md, /^\*\*`<!-- -->` comment\*\* · HTML comment/);
+    assert.equal(probe(L.html, 'several lines').primary, '<!--\n    A comment can span\n    several lines.\n  -->');
+    assert.match(probe(L.html, 'TODO: add').md, /TODO \/ FIXME note/);
+    assert.match(probe(L.html, 'prettier-ignore').md, /`<!-- prettier-ignore -->`\*\* · HTML directive/);
+    const trailing = probe(L.html, 'a trailing comment');
+    assert.match(trailing.md, /About:\*\* `<li>One<\/li>` on the same line/);
+    assert.equal(trailing.related, '<li>One</li>');
+  });
+
+  test('"doc" skips plain HTML comments but keeps TODOs and directives', () => {
+    const { spec, tree, src } = L.html;
+    assert.equal(explain(spec, tree, at(src, 'A plain comment', 0, 1), { comments: 'doc' }), undefined);
+    assert.ok(explain(spec, tree, at(src, 'TODO: add', 0, 1), { comments: 'doc' }));
+    assert.ok(explain(spec, tree, at(src, 'prettier-ignore', 0, 1), { comments: 'doc' }));
   });
 });
