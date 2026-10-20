@@ -34,6 +34,8 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
   In CSS, properties, value keywords (explained for the property they belong to: `flex` in `display: flex`), units (`1.5rem` is "1.5 × the root font size: 24px with the default 16px"), colors (`#3366ff` is `rgb(51 102 255)`), functions such as `calc()`, `var()` and `clamp()`, selectors (with their specificity), pseudo-classes, pseudo-elements, at-rules and media features all get an explanation.
 
+  Files that mix languages are explained part by part. In HTML, `<script>` is JavaScript, `<style>` is CSS and `onclick="..."` is JavaScript. In a Vue single-file component, the template is HTML plus Vue's directives (`v-if`, `:href`, `@click.prevent`, `#slot`, with what their argument and modifiers do), components and `{{ }}`; the `<script>` and the template's expressions are JavaScript, or TypeScript with `lang="ts"`; and the `<style>` is CSS.
+
 - **Scope highlighting.** See at a glance which construct a keyword belongs to.
 
   ![Scope highlight following the cursor over func, else and range](images/scope.gif)
@@ -144,6 +146,7 @@ npm run web
 | `src/core/brackets.ts` | Explains brackets from their place in the syntax tree |
 | `src/core/grouping.ts` | Shows how operator precedence groups an expression, for operator hovers |
 | `src/core/outline.ts` | The outline of a function's steps, for Explain This Function |
+| `src/core/embedded.ts`, `src/docs/webInjections.ts` | Embedded languages: the parts of a document in another language (an HTML `<script>`, a Vue template expression), each parsed with its own grammar and explained by its own spec |
 | `src/core/parser.ts` | Loads the tree-sitter grammars, each one the first time its language is needed |
 | `src/extension.ts` | VS Code wiring: hover provider, decorations, settings |
 

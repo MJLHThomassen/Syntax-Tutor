@@ -9,7 +9,7 @@
   - Character references (`&amp;`, `&nbsp;`, `&#169;`, `&#x1F600;`) show the character they stand for. The doctype, start, end and self-closing tags (`<div/>` doesn't close a `<div>`!), stray end tags and `<!-- -->` comments (with `TODO`s and `<!-- prettier-ignore -->`) are explained.
   - A tag name highlights its whole element and outlines its start and end tags; an attribute highlights itself.
   - Explain This Line says which element a line starts ("This line starts the `<section>` element (lines 33–40)"), explains an end tag or the doctype as one part, and nests the content of elements opened in the selected lines.
-  - The contents of `<script>` and `<style>` are not explained yet.
+  - `<script>` is explained as JavaScript, `<style>` as CSS, and event handler attributes (`onclick="..."`) as JavaScript (see embedded languages below).
 - Hovering the first character of a token right after an empty node (such as `</script>` after an empty script) now works.
 - **CSS support**:
   - Hovers for about 240 properties (box model, flexbox, grid, typography, colors and backgrounds, borders and shadows, transforms, transitions and animations, logical properties, container queries, ...) with an example and an MDN link; inherited properties and vendor prefixes (`-webkit-...`) are pointed out, and so are unknown (misspelled) properties.
@@ -19,8 +19,14 @@
   - At-rules (`@media`, `@import`, `@font-face`, `@keyframes`, `@supports`, `@layer`, `@container`, `@property`, `@page`, `@scope`, ...), media types and features, keyframe selectors, and the at-rules of Sass and Tailwind (which aren't CSS).
   - Scopes: a selector highlights its rule, a property its declaration, an at-rule keyword the whole at-rule. Custom properties and `@keyframes` names say where they are declared and used, and `var(--x)` or an animation name highlights the declaration.
   - Comments: `/* */`, `/*! */` (kept by minifiers), Stylelint, Prettier and Autoprefixer directives, source maps, and a warning for `//`, which isn't a comment in CSS.
-  - Works on stylesheets embedded in other files too (parsed with included ranges): `Parsers.parse` takes optional `includedRanges`.
-- Explain This Line can name constructs per language (`LanguageSpec.nodeLabel`): "This line is the `display` declaration", "This line starts the `@media` rule".
+  - Also used for the `<style>` in HTML and Vue files.
+- Explain This Line can name constructs per language (`LanguageSpec.labelOf`): "This line is the `display` declaration", "This line starts the `@media` rule".
+- **Vue single-file components** (`.vue`):
+  - The template is HTML plus Vue: directives, full or shorthand (`v-if`, `:href`, `@click`, `#slot`), with what their argument and modifiers do ("`@submit.prevent`: listens to the `submit` event; `.prevent` calls `event.preventDefault()`"), and for `:href` the HTML attribute it binds.
+  - Components, built-in components (`<Transition>`, `<KeepAlive>`, ...), the `<template>`/`<script>`/`<style>` blocks and their attributes (`setup`, `scoped`, `lang`), `{{ }}`, `v-for` values and slot props.
+  - The `<script>` and the template's expressions (`{{ }}`, directive values, the source of a `v-for`) are explained as JavaScript, or TypeScript with `lang="ts"`; the `<style>` as CSS.
+  - Works without the official Vue extension: Syntax Tutor contributes the `vue` language id for `.vue` files.
+- **Embedded languages**: a document can contain parts in other languages (an HTML `<script>`, a Vue template expression). Each part is parsed with its own grammar and explained by its own language: hovers, highlights, Explain This Function, and Explain This Line, which mixes the languages of a line in reading order.
 
 ## 0.3.0
 
