@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Operator grouping**: in an expression with several operators, an operator's hover (and its Explain This Line entry) says what it works on and shows the expression with its implicit groups in parentheses. For example, in `a + b * c == d`, `+` combines `a` and `b * c`, and the expression is grouped as `(a + (b * c)) == d`.
+
 ## 0.2.0
 
 - **Works in VS Code for the web**: vscode.dev and github.dev (press `.` on a GitHub repository).

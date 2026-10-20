@@ -1,6 +1,7 @@
 import type { Node, Tree } from 'web-tree-sitter';
 import { explain, type Options, type Span } from './analyzer';
 import { bracketContext, ownerLabel, partnerOf } from './brackets';
+import { codeSpan } from './markdown';
 import type { LanguageSpec } from './model';
 import { fieldOf, firstLine, lastLeaf } from './nodes';
 
@@ -48,13 +49,6 @@ const shorten = (text: string) => {
   const line = text.split('\n', 1)[0];
   return line.length > 60 || line !== text ? `${line.slice(0, 59)}…` : line;
 };
-
-/** Markdown inline code that survives backticks inside the text. */
-function codeSpan(text: string): string {
-  if (!text.includes('`')) return `\`${text}\``;
-  const fence = '`'.repeat(Math.max(...(text.match(/`+/g) ?? ['']).map((r) => r.length)) + 1);
-  return `${fence} ${text} ${fence}`;
-}
 
 /**
  * Put the literal itself in the heading: "**`\"...\" (string literal)`** · C literal"
