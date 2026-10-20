@@ -18,8 +18,15 @@ const LANGS = [
   ['csharp', 'csharp', 'tour.cs'],
   ['javascript', 'javascript', 'tour.js'],
   ['typescript', 'typescript', 'tour.ts'],
-  ['python', 'python', 'tour.py', '#'],
+  ['python', 'python', 'tour.py', { comment: '#' }],
+  // HTML comments need a closing marker, and are inserted before tag lines (not in <script>/<style> text).
+  ['html', 'html', 'tour.html', { comment: '<!--', close: ' -->', lines: /^\s*<[a-zA-Z/!]/ }],
+  // CSS only has block comments; they go before declarations, selectors and at-rules.
+  ['css', 'css', 'tour.css', { comment: '/*', close: ' */', lines: /^\s*([a-z-]+\s*:|[.#@:&]|[a-z][\w-]*\s*[{,[:.])/ }],
 ];
+
+/** Lines that start a statement, before which a comment line can be inserted. */
+const STATEMENT_LINE = /^\s*(return|let|const|var|if|for|int|auto|fn|func|\})\b/;
 
 /** Row/column (UTF-16) of an offset. */
 function pointAt(text, offset) {
@@ -48,19 +55,19 @@ function shape(tree) {
  * A batch of non-overlapping edits that keep the code valid, all in coordinates of
  * `text`: rename an identifier, add text inside a string, insert a comment line.
  */
-function makeBatch(tree, text, random, comment) {
+function makeBatch(tree, text, random, { comment = '//', close = '', lines = STATEMENT_LINE } = {}) {
   const ids = [];
   const strings = [];
   const lineStarts = [];
   const walk = (n) => {
-    if (n.childCount === 0 && /^(identifier|field_identifier|property_identifier|type_identifier)$/.test(n.type)) ids.push(n);
-    if (/^(string_content|string_fragment|interpreted_string_literal_content)$/.test(n.type) && n.text.length > 1) strings.push(n);
+    if (n.childCount === 0 && /^(identifier|field_identifier|property_identifier|type_identifier|attribute_name)$/.test(n.type)) ids.push(n);
+    if (/^(string_content|string_fragment|interpreted_string_literal_content|attribute_value)$/.test(n.type) && n.text.length > 1) strings.push(n);
     for (let i = 0; i < n.childCount; i++) walk(n.child(i));
   };
   walk(tree.rootNode);
   for (let i = 0, off = 0; i < text.length; i++) if (text[i] === '\n') lineStarts.push(i + 1);
   // Only insert comments before lines that start a statement-ish line (not inside strings or comments).
-  const safeLines = lineStarts.filter((o) => /^\s*(return|let|const|var|if|for|int|auto|fn|func|\})\b/.test(text.slice(o, o + 40)) && !/`/.test(text.slice(o, o + 200).split('\n')[0]));
+  const safeLines = lineStarts.filter((o) => lines.test(text.slice(o, o + 40)) && !/`/.test(text.slice(o, o + 200).split('\n')[0]));
 
   const pick = (xs) => xs[Math.floor(random() * xs.length)];
   const candidates = [];
@@ -72,7 +79,7 @@ function makeBatch(tree, text, random, comment) {
     if (!/\\/.test(text.slice(at - 1, at + 1))) candidates.push({ from: at, to: at, text: 'é👋x' });
   }
   const line = pick(safeLines);
-  if (line !== undefined) candidates.push({ from: line, to: line, text: `${comment} héllo 👋 ${Math.floor(random() * 1000)}\n` });
+  if (line !== undefined) candidates.push({ from: line, to: line, text: `${comment} héllo 👋 ${Math.floor(random() * 1000)}${close}\n` });
   // Drop overlaps so all edits refer to the same old text, like one VS Code change event.
   const batch = [];
   for (const c of candidates.sort((a, b) => a.from - b.from)) if (!batch.length || c.from >= batch.at(-1).to) batch.push(c);
@@ -86,7 +93,7 @@ function apply(text, batch) {
 }
 
 describe('incremental parsing', () => {
-  for (const [file, exp, sample, comment = '//'] of LANGS) {
+  for (const [file, exp, sample, style] of LANGS) {
     test(`${exp}: edited + re-parsed tree equals a full parse`, async () => {
       const spec = require(`../dist/test/lang-${file}.js`)[exp];
       const parsers = await Parsers.load(readWasm, [spec]);
@@ -95,7 +102,7 @@ describe('incremental parsing', () => {
       assert.equal(tree.rootNode.hasError, false, 'sample should parse cleanly');
       const random = rng(42);
       for (let round = 0; round < 25; round++) {
-        const batch = makeBatch(tree, text, random, comment);
+        const batch = makeBatch(tree, text, random, style);
         assert.ok(batch.length > 0);
         const newText = apply(text, batch);
         editTree(

@@ -65,6 +65,9 @@ function literalHeading(markdown: string, text: string): string {
 /** Branches of a switch/match: a scope without braces of their own. */
 const CASE_LIKE = /^(expression_case|type_case|default_case|communication_case|switch_case|switch_default|switch_section|case_statement|match_arm)$/;
 
+/** "the `if` statement", or what the language calls the construct (`spec.labelOf`). */
+const labelOf = (spec: LanguageSpec, n: Node) => spec.labelOf?.(n) ?? ownerLabel(n);
+
 function firstLeaf(n: Node): Node {
   let x = n;
   while (x.childCount > 0) x = x.child(0)!;
@@ -75,11 +78,20 @@ function firstLeaf(n: Node): Node {
  * The scopes a token sits in that were opened within the explained lines:
  * brace-delimited nodes (bodies, blocks, objects) and switch/match branches.
  * The braces and a branch's own header (`case 1:`) belong to the outer level.
+ * Languages can add their own (HTML elements) with `spec.contentOf`.
  */
-function scopesOf(token: Node, startRow: number): { depth: number; scope?: { id: number; label: string } } {
+function scopesOf(spec: LanguageSpec, token: Node, startRow: number): { depth: number; scope?: { id: number; label: string } } {
   let depth = 0;
   let scope: { id: number; label: string } | undefined;
   for (let a = token.parent; a && a.startPosition.row >= startRow && a.parent; a = a.parent) {
+    const content = spec.contentOf?.(a);
+    if (content) {
+      // Only what's between the tags is inside; the tags themselves belong to the outer level.
+      if (token.startIndex < content.startIndex || token.endIndex > content.endIndex) continue;
+      depth++;
+      scope ??= { id: a.id, label: labelOf(spec, a) };
+      continue;
+    }
     const first = firstLeaf(a);
     const braced = first.text === '{' && !first.isNamed && first.parent?.equals(a);
     // Python: an indented block after a `:` header. It opens at the `:`, so only counts when that is in range too.
@@ -107,7 +119,7 @@ function scopesOf(token: Node, startRow: number): { depth: number; scope?: { id:
     if (!scope) {
       const short = header.length > 40 ? `${header.slice(0, 39)}…` : header;
       const label = braced
-        ? bracketContext(first) ?? 'a block'
+        ? spec.labelOf?.(a) ?? bracketContext(first) ?? 'a block'
         : indented
           ? `the body of ${ownerLabel(a.parent!)}`
           : `the \`${short || firstLine(a, 40)}\` branch`;
@@ -118,12 +130,12 @@ function scopesOf(token: Node, startRow: number): { depth: number; scope?: { id:
 }
 const PUNCTUATION = /^[,;.:]$/;
 
-/** Leaf tokens overlapping rows [startRow, endRow], in order. Comments count as one token. */
-function leaves(tree: Tree, startRow: number, endRow: number): Node[] {
+/** Leaf tokens overlapping rows [startRow, endRow], in order. Comments count as one token, and so do nodes of the `ownText` types (CSS `1rem`). */
+function leaves(tree: Tree, startRow: number, endRow: number, ownText?: ReadonlySet<string>): Node[] {
   const out: Node[] = [];
   const visit = (n: Node) => {
     if (n.endPosition.row < startRow || n.startPosition.row > endRow) return;
-    if (n.childCount === 0 || n.type.endsWith('comment')) {
+    if (n.childCount === 0 || n.type.endsWith('comment') || ownText?.has(n.type)) {
       if (n.text.trim()) out.push(n);
       return;
     }
@@ -190,11 +202,12 @@ function structureOf(spec: LanguageSpec, tree: Tree, first: Node | undefined, st
   // Python wraps every expression used as a statement, without a `;`: name what it holds ("the assignment").
   const inner = n.type === 'expression_statement' && n.namedChildCount === 1 ? n.namedChild(0) : null;
   if (inner && inner.startIndex === n.startIndex && inner.endIndex === n.endIndex) n = inner;
-  const label = spec.comments?.isDocString?.(n) ? 'docstring' : ownerLabel(n).replace(/^the /, '');
-  const [from, to] = [n.startPosition.row + 1, n.endPosition.row + 1];
+  const label = spec.comments?.isDocString?.(n) ? 'docstring' : labelOf(spec, n).replace(/^the /, '');
+  const end = (spec.extentOf?.(n) ?? n).endPosition;
+  const [from, to] = [n.startPosition.row + 1, end.row + 1];
   const lines = from === to ? `line ${from}` : `lines ${from}–${to}`;
   const many = endRow > startRow ? 'These lines start' : 'This line starts';
-  if (n.endPosition.row <= endRow) return `${endRow > startRow ? 'These lines are' : 'This line is'} the ${label} (${lines}).`;
+  if (end.row <= endRow) return `${endRow > startRow ? 'These lines are' : 'This line is'} the ${label} (${lines}).`;
   return `${many} the ${label} (${lines}).`;
 }
 
@@ -207,7 +220,7 @@ export function explainLines(
 ): LineExplanation {
   const range: Span = { start: { row: startRow, column: 0 }, end: { row: endRow, column: Number.MAX_SAFE_INTEGER } };
   const items: LineItem[] = [];
-  const tokens = leaves(tree, startRow, endRow);
+  const tokens = leaves(tree, startRow, endRow, spec.ownTextTypes);
   const literalsDone = new Set<number>();
   for (const token of tokens) {
     // The pieces of a string literal (`"`, the text, `"`, a `$` or `r#` prefix) are one entry for the
@@ -228,7 +241,7 @@ export function explainLines(
         span: spanOf(str),
         markdown,
         plain: !e || undefined,
-        ...scopesOf(token, startRow),
+        ...scopesOf(spec, token, startRow),
       });
       continue;
     }
@@ -260,7 +273,7 @@ export function explainLines(
         span: e.span,
         markdown: e.markdown,
         symbol: spec.identifierTypes.has(token.type) || undefined,
-        ...scopesOf(token, startRow),
+        ...scopesOf(spec, token, startRow),
       });
       continue;
     }
@@ -275,7 +288,7 @@ export function explainLines(
       markdown: plain,
       plain: true,
       symbol: (lit === token && spec.identifierTypes.has(token.type)) || undefined,
-      ...scopesOf(token, startRow),
+      ...scopesOf(spec, token, startRow),
     });
   }
   const first = tokens.find((t) => t.startPosition.row >= startRow);

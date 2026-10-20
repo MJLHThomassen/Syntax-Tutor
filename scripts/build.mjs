@@ -28,6 +28,8 @@ const wasmFiles = {
   'tree-sitter-typescript.wasm': require.resolve('tree-sitter-typescript/tree-sitter-typescript.wasm'),
   'tree-sitter-tsx.wasm': require.resolve('tree-sitter-typescript/tree-sitter-tsx.wasm'),
   'tree-sitter-python.wasm': require.resolve('tree-sitter-python/tree-sitter-python.wasm'),
+  'tree-sitter-html.wasm': require.resolve('tree-sitter-html/tree-sitter-html.wasm'),
+  'tree-sitter-css.wasm': require.resolve('tree-sitter-css/tree-sitter-css.wasm'),
 };
 // --lang builds skip this so parallel builds never rewrite files other tests are reading.
 if (!onlyLang) for (const [name, from] of Object.entries(wasmFiles)) copyFileSync(from, join(wasmDir, name));

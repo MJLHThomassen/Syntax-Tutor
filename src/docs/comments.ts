@@ -464,6 +464,64 @@ export const csharpComments: CommentStyle = {
   formatNames: FORMAT_NAMES,
 };
 
+// --------------------------------------------------------------------- CSS
+
+const MDN_CSS_COMMENTS = 'https://developer.mozilla.org/en-US/docs/Web/CSS/Comments';
+
+export const cssComments: CommentStyle = {
+  kinds: [
+    {
+      test: /^\/\*#\s*sourceMappingURL=/,
+      category: 'directive',
+      title: '`/*# sourceMappingURL */`',
+      summary: 'Points to the **source map** of this (generated) stylesheet, so the browser\'s devtools can show the original Sass, Less or unminified source.',
+      link: 'https://developer.mozilla.org/en-US/docs/Glossary/Source_map',
+    },
+    {
+      test: /^\/\*!/,
+      category: 'directive',
+      title: '`/*! */` preserved comment',
+      summary: 'A comment that **minifiers keep** (cssnano, esbuild, Sass\'s compressed output, ...) while they strip all others. Used for license and copyright headers. For the browser it is an ordinary comment.',
+      example: '/*! normalize.css v8.0.1 | MIT License */',
+    },
+    {
+      test: /^\/\*\s*stylelint-(disable|enable)/,
+      category: 'directive',
+      title: 'Stylelint directive',
+      summary: 'Configures the Stylelint linter: `stylelint-disable-next-line rule-name` skips a rule for the next line, `stylelint-disable` / `stylelint-enable` for a region. Name the rule and say why.',
+      example: '/* stylelint-disable-next-line declaration-no-important */\ncolor: red !important;',
+      link: 'https://stylelint.io/user-guide/ignore-code',
+    },
+    {
+      test: /^\/\*\s*prettier-ignore\b/,
+      category: 'directive',
+      title: '`/* prettier-ignore */`',
+      summary: 'Tells the Prettier formatter to leave the next rule or declaration exactly as written.',
+      link: 'https://prettier.io/docs/en/ignore.html',
+    },
+    {
+      test: /^\/\*\s*autoprefixer\s*:/,
+      category: 'directive',
+      title: 'Autoprefixer control comment',
+      summary: 'Controls Autoprefixer, the tool that adds `-webkit-` style vendor prefixes: `autoprefixer: off` for this block, `autoprefixer: ignore next` for the next line.',
+      link: 'https://github.com/postcss/autoprefixer#control-comments',
+    },
+    {
+      test: /^\/\//,
+      category: 'note',
+      title: '`//` is not a CSS comment',
+      summary: 'CSS has **no line comments**: only `/* */`. A browser doesn\'t skip `// ...`; it reads it as broken CSS, which usually swallows the next declaration or the whole next rule too.',
+      details: 'Sass (`.scss`), Less and some PostCSS setups do allow `//` comments: they remove them when compiling to CSS. In a plain `.css` file, write `/* ... */`.',
+      example: '/* a real CSS comment */\n.card { color: red; }',
+      link: MDN_CSS_COMMENTS,
+    },
+    todo,
+    blockComment('CSS only has this kind of comment. It may go anywhere whitespace is allowed: between rules, between declarations, even inside a value. Comments do not nest: the first `*/` ends the comment.', MDN_CSS_COMMENTS),
+  ],
+  tags: {},
+  formatNames: FORMAT_NAMES,
+};
+
 // ------------------------------------------------------------------ Python
 
 const PEP257 = 'https://peps.python.org/pep-0257/';
@@ -648,5 +706,37 @@ export const pythonComments: CommentStyle = {
   ],
   isDocString: isPythonDocString,
   tags: { pydoc: pyDocTags },
+  formatNames: FORMAT_NAMES,
+};
+
+// ------------------------------------------------------------------- HTML
+
+export const htmlComments: CommentStyle = {
+  kinds: [
+    {
+      test: /^<!--\s*prettier-ignore\b/,
+      category: 'directive',
+      title: '`<!-- prettier-ignore -->`',
+      summary: 'Tells the Prettier formatter to leave the next element exactly as it is written.',
+      example: '<!-- prettier-ignore -->\n<pre>  keep   this   spacing  </pre>',
+      link: 'https://prettier.io/docs/ignore',
+    },
+    {
+      test: /^<!--\s*(TODO|FIXME|HACK|XXX|NOTE|BUG)\b/,
+      category: 'note',
+      title: 'TODO / FIXME note',
+      summary: 'A marker for unfinished work or a known problem. The browser ignores it, but editors and linters can list all of them (e.g. the "Todo Tree" extension).',
+    },
+    {
+      test: /^<!--/,
+      category: 'plain',
+      title: '`<!-- -->` comment',
+      summary: 'An **HTML comment**: everything between `<!--` and `-->` is ignored by the browser and not shown on the page. It can span several lines.',
+      details: 'Comments are still sent to the browser, so anyone can read them with "View source": never put secrets in them. They can\'t be nested. Inside `<script>` and `<style>`, use JavaScript or CSS comments instead.',
+      example: '<!-- Main navigation -->\n<nav>…</nav>\n\n<!--\n<p>Hidden for now</p>\n-->',
+      link: 'https://developer.mozilla.org/en-US/docs/Web/HTML/Guides/Comments',
+    },
+  ],
+  tags: {},
   formatNames: FORMAT_NAMES,
 };

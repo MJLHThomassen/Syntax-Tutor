@@ -15,6 +15,8 @@ before(async () => {
   L.cs = await load('csharp', 'csharp', 'tour.cs');
   L.c = await load('c', 'c', 'tour.c');
   L.py = await load('python', 'python', 'tour.py');
+  L.html = await load('html', 'html', 'tour.html');
+  L.css = await load('css', 'css', 'tour.css');
 });
 
 /** Explain the line(s) starting at the line containing `needle`. */
@@ -135,6 +137,24 @@ describe('explain this line', () => {
     assert.ok(f.items.some((i) => i.text === 'squares'), 'code inside { } is explained');
   });
 
+  test('CSS: declarations, rules and at-rules, with values as one entry each', () => {
+    const decl = lines(L.css, '  border: 1px solid #ddd;');
+    assert.equal(decl.structure, 'This line is the `border` declaration (line 34).');
+    assert.deepEqual(heads(decl), [
+      'border | **`border`** · CSS property',
+      ': | **`property: value`** · CSS syntax',
+      '1px | **`1px`** · CSS length',
+      'solid | **`solid`** · CSS keyword',
+      '#ddd | **`#ddd`** · CSS color',
+    ]);
+    const rule = lines(L.css, '.card {', 11);
+    assert.equal(rule.structure, 'These lines are the rule `.card` (lines 27–38).');
+    assert.equal(rule.items.find((i) => i.text === 'display').scope.label, 'the block of the rule `.card`');
+    const ref = lines(L.css, '  gap: var(--gap);').items.find((i) => i.text === '--gap');
+    assert.match(ref.markdown, /\*\*Custom property reference\*\* · Reads the custom property `--gap`, declared on line 9/);
+    assert.equal(lines(L.css, '@keyframes spin').structure, 'This line starts the `@keyframes` rule (lines 89–99).');
+  });
+
   test('code inside an interpolation is still explained', () => {
     const r = lines(L.cs, 'public virtual string Describe');
     const texts = r.items.map((i) => i.text);
@@ -142,5 +162,28 @@ describe('explain this line', () => {
     assert.match(r.items.find((i) => i.text.startsWith('$"')).markdown, /^\*\*`\$"\{GetType\(\)\.Name\} with area/);
     assert.ok(texts.includes('GetType') && texts.includes('Name') && texts.includes('Area'), texts.join(' '));
     assert.equal(texts.filter((t) => t === '}').length, 0); // hole closers are covered by their opener
+  });
+
+  test('HTML: a tag line names its element; end tags and the doctype are one entry each', () => {
+    const r = lines(L.html, '<section id="menu">');
+    assert.equal(r.structure, 'This line starts the `<section>` element (lines 33–40).');
+    assert.deepEqual(heads(r), [
+      '< | **`<section>`** · HTML start tag',
+      'section | **`<section>`** · HTML element',
+      'id | **`id`** · HTML attribute',
+      '= | **`= (attribute value)`** · HTML syntax',
+      '"menu" | **`"menu"`** · HTML attribute value',
+    ]);
+    assert.deepEqual(lines(L.html, '      </ul>').items.map((i) => i.text), ['</ul>']);
+    assert.equal(lines(L.html, '<!DOCTYPE').structure, 'This line is the `<!DOCTYPE>` declaration (line 1).');
+  });
+
+  test('HTML: the content of elements opened in the selection is nested', () => {
+    const r = lines(L.html, '    <nav>', 6);
+    assert.equal(r.structure, 'These lines are the `<nav>` element (lines 18–24).');
+    const a = r.items.find((i) => i.text === 'a');
+    assert.equal(a.depth, 3); // nav > ul > li
+    assert.equal(a.scope.label, 'the `<li>` element');
+    assert.equal(r.items.find((i) => i.text === '</nav>').depth, 0);
   });
 });

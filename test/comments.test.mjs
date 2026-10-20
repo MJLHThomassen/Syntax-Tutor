@@ -20,6 +20,8 @@ before(async () => {
     ['js', 'javascript', 'javascript', 'comments.js'],
     ['ts', 'typescript', 'typescript', 'comments.ts'],
     ['py', 'python', 'python', 'comments.py'],
+    ['html', 'html', 'html', 'comments.html'],
+    ['css', 'css', 'css', 'comments.css'],
   ]) {
     L[key] = await load(file, exp, `comments/${sample}`);
   }
@@ -219,5 +221,54 @@ describe('Python comments and docstrings', () => {
     assert.equal(explain(spec, tree, at(src, 'Plain comments', 0, 1), { comments: 'doc' }), undefined);
     assert.ok(explain(spec, tree, at(src, 'Return the area', 0, 1), { comments: 'doc' }));
     assert.equal(explain(spec, tree, at(src, 'Return the area', 0, 1), { comments: 'off' }), undefined);
+  });
+});
+
+describe('HTML comments', () => {
+  test('<!-- --> comments are one block each; TODOs, directives and trailing comments', () => {
+    assert.match(probe(L.html, 'A plain comment').md, /^\*\*`<!-- -->` comment\*\* · HTML comment/);
+    assert.equal(probe(L.html, 'several lines').primary, '<!--\n    A comment can span\n    several lines.\n  -->');
+    assert.match(probe(L.html, 'TODO: add').md, /TODO \/ FIXME note/);
+    assert.match(probe(L.html, 'prettier-ignore').md, /`<!-- prettier-ignore -->`\*\* · HTML directive/);
+    const trailing = probe(L.html, 'a trailing comment');
+    assert.match(trailing.md, /About:\*\* `<li>One<\/li>` on the same line/);
+    assert.equal(trailing.related, '<li>One</li>');
+  });
+
+  test('"doc" skips plain HTML comments but keeps TODOs and directives', () => {
+    const { spec, tree, src } = L.html;
+    assert.equal(explain(spec, tree, at(src, 'A plain comment', 0, 1), { comments: 'doc' }), undefined);
+    assert.ok(explain(spec, tree, at(src, 'TODO: add', 0, 1), { comments: 'doc' }));
+    assert.ok(explain(spec, tree, at(src, 'prettier-ignore', 0, 1), { comments: 'doc' }));
+  });
+});
+
+describe('CSS comments', () => {
+  test('block comments, trailing comments and TODO notes', () => {
+    const block = probe(L.css, 'A block comment');
+    assert.match(block.md, /^\*\*`\/\* \*\/` block comment\*\* · CSS comment/);
+    assert.equal(block.primary, '/* A block comment,\n   on two lines. */');
+    assert.match(probe(L.css, 'a trailing comment').md, /About:\*\* `color: red;` on the same line/);
+    assert.match(probe(L.css, 'TODO: use').md, /TODO \/ FIXME note/);
+  });
+
+  test('tool directives and preserved comments', () => {
+    assert.match(probe(L.css, 'Tour stylesheet').md, /preserved comment[\s\S]*minifiers keep/);
+    assert.match(probe(L.css, 'stylelint-disable').md, /Stylelint directive/);
+    assert.match(probe(L.css, 'prettier-ignore').md, /Prettier/);
+    assert.match(probe(L.css, 'sourceMappingURL').md, /source map/);
+  });
+
+  test('`//` is not a comment in CSS', () => {
+    const p = probe(L.css, 'not a comment');
+    assert.match(p.md, /`\/\/` is not a CSS comment[\s\S]*no line comments/);
+    assert.equal(p.primary, '// not a comment in CSS');
+  });
+
+  test('"doc" keeps directives and notes, skips plain comments', () => {
+    const { spec, tree, src } = L.css;
+    assert.equal(explain(spec, tree, at(src, 'A block comment', 0, 1), { comments: 'doc' }), undefined);
+    assert.ok(explain(spec, tree, at(src, 'stylelint', 0, 1), { comments: 'doc' }));
+    assert.ok(explain(spec, tree, at(src, 'not a comment', 0, 1), { comments: 'doc' }));
   });
 });

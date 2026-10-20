@@ -65,8 +65,8 @@ async function run() {
   assert.ok(hs, 'no scope highlighted from hover');
   results.push(['rust hover scope lines', `${hs.primary.start.row + 1}-${hs.primary.end.row + 1}`]);
 
-  // Every other language: a `return` hover from the right spec, via VS Code's language id.
-  for (const [file, needle, label] of [
+  // Every other language: a `return` hover (HTML: a tag name, CSS: a property) from the right spec, via VS Code's language id.
+  for (const [file, needle, label, token = 'return', offset = 0] of [
     ['tour.c', 'return a + b', 'C keyword'],
     ['tour.cpp', 'return "shape"', 'C\\+\\+ keyword'],
     ['tour.cs', 'return best', 'C# keyword'],
@@ -74,11 +74,17 @@ async function run() {
     ['tour.ts', 'return Math.PI', 'TypeScript keyword'],
     ['tour.tsx', 'return (', 'TypeScript keyword'],
     ['tour.py', 'return a / b', 'Python keyword'],
+    ['tour.html', '<section id', 'HTML element', '<section>', 1],
+    ['tour.css', 'display: flex', 'CSS property', 'display'],
+    ['tour.vue', 'v-if="todos', 'Vue directive', 'v-if'],
+    // Embedded languages: the <script setup lang="ts"> and the template's expressions are TypeScript.
+    ['tour.vue', 'function add', 'TypeScript keyword', 'function'],
+    ['tour.vue', '> 0"', 'TypeScript operator', '> \\(greater than\\)'],
   ]) {
     const { doc } = await open(file);
-    const h = await hoverText(doc, find(doc, needle));
-    assert.match(h, new RegExp(`🎓 \\*Syntax Tutor\\*\\n\\n\\*\\*\`return\`\\*\\* · ${label}`), `${file} (${doc.languageId})`);
-    results.push([`${file} [${doc.languageId}] hover return`, h]);
+    const h = await hoverText(doc, find(doc, needle, offset));
+    assert.match(h, new RegExp(`🎓 \\*Syntax Tutor\\*\\n\\n\\*\\*\`${token}\`\\*\\* · ${label}`), `${file} (${doc.languageId})`);
+    results.push([`${file} [${doc.languageId}] hover ${token}`, h]);
   }
 
   // Comments: a JSDoc @param tag explains itself and highlights the parameter it names.
@@ -103,6 +109,17 @@ async function run() {
   const panelTab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((t) => t.input instanceof vscode.TabInputWebview);
   assert.ok(panelTab, 'no Explain panel tab');
   results.push(['explainLine panel', `${panelTab.label}: ${explained.structure}`]);
+
+  // Explain This Function: the outline of the function around the cursor, in the same panel.
+  const fnPos = find(ex.doc, 'if b == 0');
+  ex.editor.selection = new vscode.Selection(fnPos, fnPos);
+  const outline = await vscode.commands.executeCommand('syntaxTutor.explainFunction');
+  assert.ok(outline, 'explainFunction returned nothing');
+  assert.deepEqual(outline.rows.map((r) => r.text), ['If `b == 0`:', 'Returns early with `0, errors.New("divide by zero")`', 'Returns `a / b, nil`']);
+  await sleep(300);
+  const fnTab = vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((t) => t.input instanceof vscode.TabInputWebview);
+  assert.equal(fnTab?.label, 'Explain function divide');
+  results.push(['explainFunction panel', `${fnTab.label}: ${outline.summary}`]);
 
   // Names and members also get the language server's hover (built-in TypeScript here).
   const tsDoc = await open('tour.ts');

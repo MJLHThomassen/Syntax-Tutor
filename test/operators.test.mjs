@@ -20,6 +20,9 @@ const LANGS = [
   ['typescript', 'typescript', ['tour.ts', 'comments/comments.ts']],
   ['python', 'python', ['tour.py', 'comments/comments.py']],
   ['typescript', 'tsx', ['tour.tsx']],
+  // HTML explains `<!DOCTYPE html>` as a whole, so its `<!` has no doc key of its own; the sample check covers it.
+  ['html', 'html', ['tour.html', 'comments/comments.html'], ['<!']],
+  ['css', 'css', ['tour.css', 'comments/comments.css']],
 ];
 
 /** Tokens made only of punctuation: operators and separators. Brackets and quotes are covered elsewhere. */
@@ -28,7 +31,7 @@ const OPERATOR = /^[^\w\s"'`\[\](){}]+$/;
 const COMMENT_MARKERS = new Set(['//', '/*', '*/']);
 
 describe('operator coverage', () => {
-  for (const [file, exp, samples] of LANGS) {
+  for (const [file, exp, samples, wholeConstructs = []] of LANGS) {
     const spec = require(`../dist/test/lang-${file}.js`)[exp];
 
     test(`${exp}: every operator token in the grammar has a doc`, async () => {
@@ -38,7 +41,7 @@ describe('operator coverage', () => {
       const missing = [];
       for (let i = 0; i < lang.nodeTypeCount; i++) {
         const t = lang.types[i];
-        if (!t || lang.nodeTypeIsNamed(i) || !lang.nodeTypeIsVisible(i) || !OPERATOR.test(t) || COMMENT_MARKERS.has(t)) continue;
+        if (!t || lang.nodeTypeIsNamed(i) || !lang.nodeTypeIsVisible(i) || !OPERATOR.test(t) || COMMENT_MARKERS.has(t) || wholeConstructs.includes(t)) continue;
         if (!keys.some((k) => k === t || k.endsWith(`/${t}`))) missing.push(t);
       }
       parsers.dispose();

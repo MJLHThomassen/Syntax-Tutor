@@ -12,6 +12,9 @@ Supports:
 - **C#**
 - **JavaScript** and **TypeScript** (including JSX/TSX)
 - **Python**
+- **HTML**
+- **CSS** (also as a stylesheet language: selectors, properties, values, units and at-rules)
+- **Vue** single-file components: the template, the script (JavaScript or TypeScript) and the style
 
 Support for more languages can be added on request. Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/) so any language supported by it can be added easily.
 
@@ -27,11 +30,17 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
 
   This works on keywords, operators, built-ins, literals and declaration names. You get a short explanation, an example and a link to the official docs. The same token gets a different explanation depending on where it appears: `*` in `*int` (pointer type), `*p` (dereference) and `a * b`, or `<-` as send, receive or channel direction. In an expression with several operators, an operator's hover also shows what it works on and how operator precedence groups the expression: in `a + b * c == d`, `+` combines `a` and `b * c`, grouped as `(a + (b * c)) == d`.
 
+  In HTML you can hover elements, attributes, attribute values and character references. An attribute's meaning follows its element (`type` on `<input>`, `<button>` or `<script>`), values such as `type="email"` or `target="_blank"` are explained, `&#169;` shows the character it stands for, and `for="email"` or `href="#menu"` points to the element it refers to.
+
+  In CSS, properties, value keywords (explained for the property they belong to: `flex` in `display: flex`), units (`1.5rem` is "1.5 × the root font size: 24px with the default 16px"), colors (`#3366ff` is `rgb(51 102 255)`), functions such as `calc()`, `var()` and `clamp()`, selectors (with their specificity), pseudo-classes, pseudo-elements, at-rules and media features all get an explanation.
+
+  Files that mix languages are explained part by part. In HTML, `<script>` is JavaScript, `<style>` is CSS and `onclick="..."` is JavaScript. In a Vue single-file component, the template is HTML plus Vue's directives (`v-if`, `:href`, `@click.prevent`, `#slot`, with what their argument and modifiers do), components and `{{ }}`; the `<script>` and the template's expressions are JavaScript, or TypeScript with `lang="ts"`; and the `<style>` is CSS.
+
 - **Scope highlighting.** See at a glance which construct a keyword belongs to.
 
   ![Scope highlight following the cursor over func, else and range](images/scope.gif)
 
-  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline (Python blocks have no closing bracket: their indentation ends them). For example, `func`, `fn`, `def` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop.
+  Put the cursor on (or hover) a keyword or a declaration name. The construct it belongs to gets a marker-style background, and the opening keyword and closing bracket get an outline (Python blocks have no closing bracket: their indentation ends them). For example, `func`, `fn`, `def` or a function's name highlights the whole function, `else` highlights the whole `if`/`else` chain, and `range` highlights its `for` loop. In HTML, a tag name highlights its whole element and outlines its start and end tags. In CSS, a selector highlights its whole rule, a property its declaration, an at-rule keyword the whole at-rule, and `var(--x)` or an animation name the declaration of that custom property or `@keyframes`.
 
 - **Jump targets.** See where `return`, `break` and other jumps take you.
 
@@ -44,13 +53,17 @@ This plugin helps with that by highlighting scopes and showing explanation-on-ho
   ![Hover on a @param tag in a TSDoc comment](images/doc-comment.png)
   ![The parameter of the selected tag is highlighted in code](images/doc-comment-param.png)
 
-  Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments, Python docstrings), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, `# noqa`, `# type:`, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`, Python docstring sections (`Args:`, NumPy `Parameters`, Sphinx `:param x:`) and doctests (`>>>`). A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
+  Hovering a comment says what kind it is: plain, doc comment (JSDoc/TSDoc, Doxygen, C# XML doc, rustdoc `///`/`//!`, Go doc comments, Python docstrings), a directive (`//go:build`, `// @ts-expect-error`, `/// <reference>`, `// NOLINT`, ESLint, `# noqa`, `# type:`, `<!-- prettier-ignore -->`, ...) or a `TODO`. The whole comment block is highlighted, and a doc comment also lightly highlights the declaration it documents. Doc tags get their own explanation: `@param`, `\brief`, `<summary>`, `<param name="x">`, Rust `# Examples` / doc tests, Go `Deprecated:`, Python docstring sections (`Args:`, NumPy `Parameters`, Sphinx `:param x:`) and doctests (`>>>`). A tag that names a parameter highlights that parameter, and doc links (`{@link foo}`, `[Name]`, `<see cref="..."/>`) highlight the linked declaration.
 
 - **Explain This Line.** Get every part of a line explained, in order, in a side panel.
 
   ![Explain This Line panel breaking down a C enum declaration part by part](images/explain-line.png)
 
   Right-click a line (or select several) and choose **Syntax Tutor: Explain This Line**, or press `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). The panel explains every part of the line in reading order: keywords, operators and brackets get their explanation, and plain names say where they are declared ("declared on line 12 as a parameter"). When your language extension (TypeScript, gopls, rust-analyzer, C#, C/C++, Python/Pylance) has documentation for a name or member, the entry gets a collapsed **IntelliSense documentation** section with that doc string; bare signatures like `(local variable) Guid userId` are left out. A sentence at the top says what the line is, for example "This line starts the `for` statement (lines 38–40)". With several lines selected, parts inside a block or branch opened in those lines are indented under a small "inside the body of the `if` statement" header, with a coloured border per nesting level. Hover an entry to highlight it in the editor, click it to scroll there (your selection stays), double-click to put the cursor on it, and turn on **Follow cursor** to keep the panel in step as you move through the code.
+
+- **Explain This Function.** See the steps of a whole function as an outline, in a side panel.
+
+  Right-click inside a function and choose **Syntax Tutor: Explain This Function**. A summary at the top says what the function takes and returns, and how many loops and decisions it has. Below it, each step is one row in plain words, nested like the code: "If `b == 0`:", "For each `n` in `nums`:", "Returns early with `0, err`", "Leaves the `switch` (`break`)". Hidden exits are pointed out too, like Rust's `?` ("on error, returns early") and a Rust function's last expression ("the last expression, without `;`, is the result"). Hover a step to highlight it in the editor, click it to scroll there, and double-click to put the cursor on it. With **Follow cursor** on, the outline switches when you move into another function.
 
 Syntax Tutor parses code with [tree-sitter](https://tree-sitter.github.io/), so it needs no language server (gopls, rust-analyzer, clangd, ...). If you do use one, both hovers appear in the same popup, and the Syntax Tutor part starts with **🎓 *Syntax Tutor***.
 
@@ -62,7 +75,11 @@ Run these from the Command Palette (`Ctrl+Shift+P`, `Cmd+Shift+P` on Mac).
 
 - **Syntax Tutor: Explain This Line** opens the Explain This Line panel for the line the cursor is on, or for all selected lines.
 
-  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript and Python files.
+  It's also in the editor's right-click menu, and has the shortcut `Ctrl+Shift+Alt+E` (`Cmd+Shift+Alt+E` on Mac). It works in Go, Rust, C, C++, C#, JavaScript, TypeScript, Python, HTML, CSS and Vue files.
+
+- **Syntax Tutor: Explain This Function** opens the same panel with an outline of the function the cursor is in.
+
+  It's also in the editor's right-click menu. Inside a short lambda such as `x => x * 2`, it outlines the function around it instead.
 
 - **Syntax Tutor: Toggle Hover Explanations** turns the hover explanations on or off.
 
@@ -110,7 +127,7 @@ To build a `.vsix` and install it in your normal VS Code:
 
 ```bash
 npm run package
-code --install-extension syntax-tutor-0.2.0.vsix
+code --install-extension syntax-tutor-0.4.0.vsix
 ```
 
 To try the web version (as on vscode.dev), run this and open http://localhost:3000. It downloads VS Code for the web the first time.
@@ -128,6 +145,8 @@ npm run web
 | `src/core/comments.ts`, `src/docs/comments.ts` | Comment blocks, doc comments and their tags; the comment kinds and tag docs per language |
 | `src/core/brackets.ts` | Explains brackets from their place in the syntax tree |
 | `src/core/grouping.ts` | Shows how operator precedence groups an expression, for operator hovers |
+| `src/core/outline.ts` | The outline of a function's steps, for Explain This Function |
+| `src/core/embedded.ts`, `src/docs/webInjections.ts` | Embedded languages: the parts of a document in another language (an HTML `<script>`, a Vue template expression), each parsed with its own grammar and explained by its own spec |
 | `src/core/parser.ts` | Loads the tree-sitter grammars, each one the first time its language is needed |
 | `src/extension.ts` | VS Code wiring: hover provider, decorations, settings |
 
@@ -142,8 +161,8 @@ To find the node type names for a construct, paste some code into the playground
 ### Adding a language
 
 1. Add the grammar package (it should ship a `.wasm` file) and copy the file in `scripts/build.mjs`.
-2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles). For a language with indentation blocks set `indentedBlocks` (see `src/docs/python.ts`); `comments.isDocString` lets string literals act as doc comments, like Python docstrings.
-3. Add it to `ALL_SPECS` in `src/extension.ts`, and add `onLanguage:<id>` to `activationEvents`.
+2. Write `src/docs/<lang>.ts`, exporting a `LanguageSpec` (`languageIds` lists the VS Code language ids it handles). For a language with indentation blocks set `indentedBlocks` (see `src/docs/python.ts`); `comments.isDocString` lets string literals act as doc comments, like Python docstrings. For markup, `scopeBoundaries`, `labelOf`, `contentOf` and `extentOf` say how elements are outlined, named and nested (see `src/docs/html.ts`). An HTML-like language can start from `makeHtmlSpec(options)` in `src/docs/html.ts`, with its own hooks for elements, attributes and values. When one node type covers both built-in and user-chosen names (CSS's `plain_value` is `flex` or an animation name), `identifierDoc` gives the built-ins their docs in context while `role` explains the user's names (see `src/docs/css.ts`).
+3. Add it to `ALL_SPECS` in `src/extension.ts`, add `onLanguage:<id>` to `activationEvents`, and add the language id to every `editorLangId =~ /^(...)$/` regex in `package.json` (menus and keybindings).
 4. Add `samples/tour.<ext>` and `test/<lang>.test.mjs`. `node scripts/build.mjs --lang <lang>` rebuilds just that language's test bundle.
 
 ## Tests

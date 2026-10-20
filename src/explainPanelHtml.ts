@@ -45,13 +45,19 @@ export function panelHtml(cspSource: string, nonce: string): string {
   .ls-body { margin-top: 4px; padding: 6px 8px; border-left: 2px solid var(--vscode-textLink-foreground); background: var(--vscode-textBlockQuote-background, rgba(128,128,128,.08)); max-height: 16em; overflow: auto; }
   .ls p { margin: 4px 0; }
   .ls pre { margin: 4px 0; }
+  /* Explain This Function: one compact row per step, with its line number. */
+  li.step { display: flex; gap: 8px; align-items: baseline; padding: 5px 10px; margin: 4px 0; }
+  li.step p { margin: 0; }
+  li.step .row-ln { color: var(--vscode-editorLineNumber-foreground); font-family: var(--vscode-editor-font-family); font-size: .9em; min-width: 3ch; text-align: right; flex: none; }
+  pre.code.sig { cursor: pointer; }
+  pre.code.sig:hover { outline: 1px solid var(--vscode-focusBorder); }
 </style>
 </head>
 <body>
 <div class="meta"><span id="where">Put the cursor on a line and run <b>Syntax Tutor: Explain This Line</b>.</span>
   <label title="Re-explain whenever the cursor moves to another line"><input type="checkbox" id="follow"> Follow cursor</label></div>
 <header>
-  <div class="hint">Click a part to show it in the editor · double-click to put the cursor there</div>
+  <div class="hint" id="hint">Click a part to show it in the editor · double-click to put the cursor there</div>
   <pre class="code" id="code" hidden></pre>
 </header>
 <div class="structure" id="structure"></div>
@@ -104,7 +110,45 @@ export function panelHtml(cspSource: string, nonce: string): string {
     $('code').querySelectorAll('.tok').forEach((el) => wire(el, +el.dataset.i));
   }
 
+  const levelColor = (d) => 'var(--vscode-editorBracketHighlight-foreground' + (((d - 1) % 6) + 1) + ', ' + ['#ffd700', '#da70d6', '#179fff'][(d - 1) % 3] + ')';
+  const indent = (d) => (d * 16) + 'px';
+
+  // Explain This Function: the signature, a summary, then one row per step, nested like the code.
+  function renderOutline(data) {
+    generation = data.generation;
+    $('follow').checked = data.follow;
+    $('where').textContent = data.file + ' · ' + data.language + (data.where ? ' · ' + data.where : '');
+    $('hint').textContent = 'Click a step to show it in the editor · double-click to put the cursor there';
+    const code = $('code');
+    code.classList.add('sig');
+    code.innerHTML = data.signature ? '<span class="ln">' + (data.firstRow + 1) + '</span>' + esc(data.signature) : '';
+    code.hidden = !data.signature;
+    $('structure').innerHTML = data.summary;
+    const list = $('items');
+    list.innerHTML = '';
+    if (!data.rows.length) {
+      list.innerHTML = data.signature ? '<p class="empty">This function has no steps to outline.</p>'
+        : '<p class="empty">Put the cursor inside a function and run <b>Syntax Tutor: Explain This Function</b>.</p>';
+      return;
+    }
+    data.rows.forEach((row, i) => {
+      const li = document.createElement('li');
+      li.className = 'step';
+      li.dataset.i = i;
+      if (row.depth > 0) {
+        li.classList.add('nested');
+        li.style.marginLeft = indent(row.depth);
+        li.style.borderLeftColor = levelColor(row.depth);
+      }
+      li.innerHTML = '<span class="row-ln">' + row.line + '</span><div class="h">' + row.html + '</div>';
+      wire(li, i);
+      list.appendChild(li);
+    });
+  }
+  wire($('code'), -1);
+
   window.addEventListener('message', ({ data }) => {
+    if (data.type === 'outline') return renderOutline(data);
     if (data.type === 'doc') {
       // Docs from the language server (what IntelliSense shows on hover), arriving after the render.
       const li = document.querySelector('li[data-i="' + data.index + '"]');
@@ -120,6 +164,8 @@ export function panelHtml(cspSource: string, nonce: string): string {
     if (data.type !== 'render') return;
     generation = data.generation;
     items = data.items;
+    $('code').classList.remove('sig');
+    $('hint').textContent = 'Click a part to show it in the editor · double-click to put the cursor there';
     $('follow').checked = data.follow;
     const n = data.lines.length;
     $('where').textContent = data.file + ' · ' + data.language + ' · ' + (n === 1 ? 'line ' + (data.firstRow + 1) : 'lines ' + (data.firstRow + 1) + '–' + (data.firstRow + n));
@@ -128,10 +174,8 @@ export function panelHtml(cspSource: string, nonce: string): string {
     const list = $('items');
     list.innerHTML = '';
     if (!items.length) list.innerHTML = '<p class="empty">Nothing to explain on this line.</p>';
-    const levelColor = (d) => 'var(--vscode-editorBracketHighlight-foreground' + (((d - 1) % 6) + 1) + ', ' + ['#ffd700', '#da70d6', '#179fff'][(d - 1) % 3] + ')';
     const seenScopes = new Set();
     items.forEach((it, i) => {
-      const indent = (d) => (d * 16) + 'px';
       // A small header where a scope opened inside these lines begins ("inside the body of the if statement").
       if (it.scopeId !== undefined && !seenScopes.has(it.scopeId)) {
         seenScopes.add(it.scopeId);

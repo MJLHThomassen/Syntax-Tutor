@@ -1,4 +1,6 @@
-import type { Node } from 'web-tree-sitter';
+import type { Node, Tree } from 'web-tree-sitter';
+import type { Injection } from './embedded';
+import type { Grouping } from './grouping';
 
 /**
  * What a doc entry describes. Identifiers only match entries of the
@@ -29,6 +31,16 @@ export interface DocEntry {
   link?: string;
   /** Overrides the heading (defaults to the token text). */
   title?: string;
+  /**
+   * Overrides what the heading calls the entry after the language name (default:
+   * a label for `kind`, such as "keyword"). E.g. "**`<div>`** · HTML element".
+   */
+  label?: string;
+  /**
+   * The language named in the heading, when it isn't the spec's own: in a Vue
+   * file, "**`<div>`** · HTML element" next to "**`v-if`** · Vue directive".
+   */
+  language?: string;
 }
 
 /**
@@ -87,6 +99,23 @@ export interface LanguageSpec {
   /** Extra check whether a doc entry applies to an identifier in context. */
   acceptIdentifierDoc?(node: Node, field: string | null, entry: DocEntry): boolean;
   /**
+   * Context-aware doc for an identifier, tried before the table (CSS: `flex` is a
+   * property in one place and a `display` value in another). Without a role scope,
+   * an identifier with such a doc gets the scope a keyword with that doc would get.
+   */
+  identifierDoc?(node: Node, field: string | null): DocEntry | undefined;
+  /**
+   * Nodes with text of their own between their children (CSS `1rem` is a number
+   * node with only `rem` as a child): hovering that text gives the node itself.
+   */
+  ownTextTypes?: ReadonlySet<string>;
+  /**
+   * How an operator's expression is grouped, for grammars whose tree doesn't follow
+   * the language's precedence (tree-sitter-css parses `a - b * c` as `(a - b) * c`).
+   * `null`: no grouping note; `undefined`: work it out from the tree (the default).
+   */
+  grouping?(token: Node): Grouping | null | undefined;
+  /**
    * Doc for a whole literal whose kind depends on more than its node type (Python's
    * `r"..."`, `f"..."`, `b"..."` are all `string` nodes). Tried before `"#<node type>"`.
    */
@@ -99,6 +128,37 @@ export interface LanguageSpec {
   indentedBlocks?: boolean;
   /** Comment kinds (doc comments, directives, ...) and the doc-tag syntax used inside them. */
   comments?: CommentStyle;
+  /**
+   * Parts of a document in other languages (an HTML `<script>`, a Vue template
+   * expression): each is parsed with its own spec and explained by it.
+   */
+  injections?(tree: Tree): Injection[];
+  /** Spec ids `injections` may return, so their grammars load together with this one. */
+  embeds?: readonly string[];
+  /**
+   * The parts of a highlighted scope that get an outline, for scopes whose edges
+   * aren't a keyword and a closing bracket (HTML: an element's start and end tags).
+   * Default: the token itself and the scope's closing bracket.
+   */
+  scopeBoundaries?(scope: Node, token: Node): Node[] | undefined;
+  /**
+   * What Explain This Line calls a construct, e.g. "the `<div>` element", "the
+   * rule `.card`", "the block of the `@media` rule". Default: worked out from its
+   * node type, first keyword and name.
+   */
+  labelOf?(node: Node): string | undefined;
+  /**
+   * The node that really covers a construct, when the grammar's node is bigger:
+   * tree-sitter-html lets a void element (`<br>`) swallow the text after it. Used
+   * for the line range Explain This Line reports. Default: the node itself.
+   */
+  extentOf?(node: Node): Node;
+  /**
+   * For constructs that nest without braces or indentation (HTML elements): the
+   * range (string indices) of their content. In Explain This Line, the parts in
+   * that range are nested one level deeper, "inside" `labelOf(node)`.
+   */
+  contentOf?(node: Node): { startIndex: number; endIndex: number } | undefined;
 }
 
 /** How tags and markup are written inside doc comments. */

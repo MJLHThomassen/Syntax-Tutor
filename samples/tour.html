@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!-- A small tour of HTML. Hover a tag, an attribute or a value, or put the
+     cursor on a tag name to see the whole element highlighted. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bakery &amp; Café</title>
+  <link rel="stylesheet" href="/css/site.css">
+  <link rel="icon" href="favicon.ico">
+  <style>
+    .note { color: navy; }
+  </style>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header>
+    <nav>
+      <ul>
+        <li><a href="#menu">Menu</a></li>
+        <li><a href="https://example.com" target="_blank" rel="noopener noreferrer">Blog</a></li>
+        <li><a href="mailto:hello@example.com">Mail us</a>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="top">
+    <h1 class="title big">Fresh bread, every&nbsp;day</h1>
+    <p class="note">Open 7&ndash;17 &#169; 2025 &#x1F35E;<br>
+      Closed on <time datetime="2025-12-25">Christmas</time>.</p>
+    <img src="loaf.jpg" alt="A sourdough loaf" width="640" height="480" loading="lazy">
+
+    <section id="menu">
+      <h2>Menu</h2>
+      <table>
+        <tr><th scope="col">Bread</th><th scope="col">Price</th></tr>
+        <tr><td>Sourdough</td><td>€4.50</td></tr>
+        <tr><td colspan=2>Prices include VAT.</td></tr>
+      </table>
+    </section>
+
+    <form action="/order" method="post">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required placeholder="you@example.com">
+      <input type="checkbox" name="news" checked>
+      <select name="size">
+        <option value="s">Small</option>
+        <option value="l" selected>Large</option>
+      </select>
+      <textarea name="note" rows="3"></textarea>
+      <button type="submit" disabled>Order</button>
+    </form>
+
+    <details>
+      <summary>Allergies</summary>
+      <p data-allergen="gluten">Contains <strong>gluten</strong>.</p>
+    </details>
+
+    <bread-counter start="3"></bread-counter>
+    <svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+  </main>
+
+  <footer>
+    <p><small>&copy; Example Bakery</small></p>
+  </footer>
+  <script type="module">
+    import { start } from "./app.js";
+    start(document.getElementById("top"));
+  </script>
+</body>
+</html>

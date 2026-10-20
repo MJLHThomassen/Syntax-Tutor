@@ -59,13 +59,23 @@ function isComment(spec: LanguageSpec, n: Node): boolean {
 /**
  * The leaf token at `point`. With `lookBehind`, a point just after a token
  * (where the text cursor sits after typing or clicking at the end of a word)
- * also counts.
+ * also counts. Nodes of the `ownText` types count as tokens where their own
+ * text is (between their children).
  */
-export function tokenAt(tree: Tree, point: Point, lookBehind = false): Node | undefined {
+export function tokenAt(tree: Tree, point: Point, lookBehind = false, ownText?: ReadonlySet<string>): Node | undefined {
   const at = (p: Point): Node | undefined => {
-    const n = tree.rootNode.descendantForPosition(p);
+    let n = tree.rootNode.descendantForPosition(p);
+    // A zero-width node (HTML's empty <script> text) hides the token starting at p: look at the character instead.
+    if (n && n.startIndex === n.endIndex) n = tree.rootNode.descendantForPosition(p, { row: p.row, column: p.column + 1 });
+    // It can stop at a parent when a hidden token ends right at p (tree-sitter-css's
+    // descendant combinator, the space in `.a .b`): go down to the child at p by hand.
+    while (n && n.childCount > 0 && !n.type.endsWith('comment')) {
+      const child = n.children.find((c) => !!c && !before(p, c.startPosition) && before(p, c.endPosition));
+      if (!child) break;
+      n = child;
+    }
     // Leaves only, except comments: Rust's comment nodes have marker children around their text.
-    if (!n || (n.childCount > 0 && !n.type.endsWith('comment')) || n.isMissing) return undefined;
+    if (!n || (n.childCount > 0 && !n.type.endsWith('comment') && !ownText?.has(n.type)) || n.isMissing) return undefined;
     // descendantForPosition may return a token ending exactly at p.
     if (before(p, n.startPosition) || !before(p, n.endPosition)) return undefined;
     return n;
@@ -114,16 +124,17 @@ function identifierInfo(spec: LanguageSpec, token: Node): IdentifierInfo | undef
     return { doc: spec.macroDoc(token.text), docTitle: `${token.text}!` };
   }
   const role = spec.role(token, field);
-  let doc = lookup(spec, token.text);
+  const own = spec.identifierDoc?.(token, field);
+  let doc = own ?? lookup(spec, token.text);
   // A declaration's own name is user-defined, even if it collides with a built-in.
   const declares = spec.isDeclarationName?.(token, field) ?? field === 'name';
-  if (doc && (declares || !(spec.acceptIdentifierDoc?.(token, field, doc) ?? true))) doc = undefined;
+  if (doc && !own && (declares || !(spec.acceptIdentifierDoc?.(token, field, doc) ?? true))) doc = undefined;
   if (!role && !doc) return undefined;
   return { role, doc };
 }
 
 function renderDoc(spec: LanguageSpec, entry: DocEntry, title: string): string {
-  const parts = [`**\`${entry.title ?? title}\`** · ${spec.displayName} ${KIND_LABEL[entry.kind]}`, entry.summary];
+  const parts = [`**\`${entry.title ?? title}\`** · ${entry.language ?? spec.displayName} ${entry.label ?? KIND_LABEL[entry.kind]}`, entry.summary];
   if (entry.details) parts.push(entry.details);
   if (entry.example) parts.push(`\`\`\`${spec.fence}\n${entry.example}\n\`\`\``);
   if (entry.link) parts.push(`[Read more ↗](${entry.link})`);
@@ -146,7 +157,7 @@ export interface Options {
 }
 
 export function explain(spec: LanguageSpec, tree: Tree, point: Point, options: Options = {}): Explanation | undefined {
-  const token = asName(spec, tokenAt(tree, point));
+  const token = asName(spec, tokenAt(tree, point, false, spec.ownTextTypes));
   if (!token) return undefined;
   if (isComment(spec, token)) {
     const c = explainComment(spec, token, point, options.comments);
@@ -172,7 +183,8 @@ export function explain(spec: LanguageSpec, tree: Tree, point: Point, options: O
   }
   let markdown = renderDoc(spec, found.doc, token.text);
   const jump = spec.jumpTarget(token);
-  const grouping = jump || bracket ? undefined : groupingOf(token);
+  const own = jump || bracket ? null : spec.grouping?.(token);
+  const grouping = jump || bracket ? undefined : own === undefined ? groupingOf(token) : (own ?? undefined);
   if (jump) markdown += `\n\n---\n\n↳ **Here:** ${jump.verb} \`${firstLine(jump.node)}\``;
   else if (bracket) markdown += `\n\n---\n\n↳ **Here:** ${bracket}`;
   else if (grouping) markdown += `\n\n---\n\n${groupingMarkdown(grouping)}`;
@@ -186,7 +198,7 @@ export function scopeFor(
   lookBehind = false,
   options: Options = {},
 ): ScopeResult | undefined {
-  const token = asName(spec, tokenAt(tree, point, lookBehind));
+  const token = asName(spec, tokenAt(tree, point, lookBehind, spec.ownTextTypes));
   if (!token) return undefined;
   if (isComment(spec, token)) {
     // The whole comment block (or the tag under the cursor), plus what it documents.
@@ -195,12 +207,16 @@ export function scopeFor(
   }
 
   let scope: Node | undefined;
-  if (spec.identifierTypes.has(token.type)) {
+  const identifier = spec.identifierTypes.has(token.type);
+  if (identifier) {
     scope = spec.role(token, fieldOf(token))?.scope;
     if (scope && spec.promote) scope = spec.promote(scope);
-  } else {
-    if (spec.noScopeTokens.has(token.text)) return undefined;
-    const doc = tokenDoc(spec, token)?.doc;
+  }
+  // Without a role scope, an identifier with a doc of its own is scoped like a keyword with that doc.
+  const identifierDoc = identifier && !scope ? spec.identifierDoc?.(token, fieldOf(token)) : undefined;
+  if (!identifier || identifierDoc) {
+    if (!identifier && spec.noScopeTokens.has(token.text)) return undefined;
+    const doc = identifierDoc ?? tokenDoc(spec, token)?.doc;
     const bracket = BRACKETS.has(token.text) && !token.isNamed;
     if (!bracket && (!doc || NO_SCOPE_KINDS.has(doc.kind))) return undefined;
     scope = token.parent ?? undefined;
@@ -208,6 +224,10 @@ export function scopeFor(
     if (scope && spec.promote) scope = spec.promote(scope);
   }
   if (!scope || scope.equals(tree.rootNode)) return undefined;
+
+  const jump = spec.jumpTarget(token);
+  const custom = spec.scopeBoundaries?.(scope, token);
+  if (custom) return { primary: span(scope), boundaries: custom.map(span), related: jump && span(jump.node) };
 
   const boundaries = [span(token)];
   const end = lastLeaf(scope);
@@ -219,6 +239,5 @@ export function scopeFor(
     if (open && BRACKETS.has(open.type) && !open.equals(token)) boundaries.push(span(open));
   }
 
-  const jump = spec.jumpTarget(token);
   return { primary: span(scope), boundaries, related: jump && span(jump.node) };
 }
