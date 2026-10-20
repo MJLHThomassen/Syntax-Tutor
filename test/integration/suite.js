@@ -75,6 +75,10 @@ async function run() {
     ['tour.tsx', 'return (', 'TypeScript keyword'],
     ['tour.py', 'return a / b', 'Python keyword'],
     ['tour.html', '<section id', 'HTML element', '<section>', 1],
+    ['tour.vue', 'v-if="todos', 'Vue directive', 'v-if'],
+    // Embedded languages: the <script setup lang="ts"> and the template's expressions are TypeScript.
+    ['tour.vue', 'function add', 'TypeScript keyword', 'function'],
+    ['tour.vue', '> 0"', 'TypeScript operator', '> \\(greater than\\)'],
   ]) {
     const { doc } = await open(file);
     const h = await hoverText(doc, find(doc, needle, offset));

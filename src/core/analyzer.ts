@@ -125,7 +125,7 @@ function identifierInfo(spec: LanguageSpec, token: Node): IdentifierInfo | undef
 }
 
 function renderDoc(spec: LanguageSpec, entry: DocEntry, title: string): string {
-  const parts = [`**\`${entry.title ?? title}\`** · ${spec.displayName} ${entry.label ?? KIND_LABEL[entry.kind]}`, entry.summary];
+  const parts = [`**\`${entry.title ?? title}\`** · ${entry.language ?? spec.displayName} ${entry.label ?? KIND_LABEL[entry.kind]}`, entry.summary];
   if (entry.details) parts.push(entry.details);
   if (entry.example) parts.push(`\`\`\`${spec.fence}\n${entry.example}\n\`\`\``);
   if (entry.link) parts.push(`[Read more ↗](${entry.link})`);

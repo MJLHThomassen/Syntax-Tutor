@@ -13,10 +13,11 @@ import { go } from './docs/go';
 import { html } from './docs/html';
 import { javascript } from './docs/javascript';
 import { python } from './docs/python';
+import { vue } from './docs/vue';
 import { rust } from './docs/rust';
 import { tsx, typescript } from './docs/typescript';
 
-const ALL_SPECS: readonly LanguageSpec[] = [go, rust, c, cpp, csharp, javascript, typescript, tsx, python, html];
+const ALL_SPECS: readonly LanguageSpec[] = [go, rust, c, cpp, csharp, javascript, typescript, tsx, python, html, vue];
 /** VS Code language id → spec. */
 const SPECS: Record<string, LanguageSpec> = Object.fromEntries(
   ALL_SPECS.flatMap((spec) => spec.languageIds.map((id) => [id, spec])),
@@ -271,7 +272,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const supportedEditor = () => {
     const editor = vscode.window.activeTextEditor;
     if (editor && SPECS[editor.document.languageId]) return editor;
-    void vscode.window.showInformationMessage('Syntax Tutor: open a Go, Rust, C, C++, C#, JavaScript, TypeScript, Python or HTML file first.');
+    void vscode.window.showInformationMessage('Syntax Tutor: open a Go, Rust, C, C++, C#, JavaScript, TypeScript, Python, HTML or Vue file first.');
     return undefined;
   };
   /** What the Explain panel needs (Explain This Line and Explain This Function). */

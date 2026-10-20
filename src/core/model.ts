@@ -35,6 +35,11 @@ export interface DocEntry {
    * a label for `kind`, such as "keyword"). E.g. "**`<div>`** · HTML element".
    */
   label?: string;
+  /**
+   * The language named in the heading, when it isn't the spec's own: in a Vue
+   * file, "**`<div>`** · HTML element" next to "**`v-if`** · Vue directive".
+   */
+  language?: string;
 }
 
 /**

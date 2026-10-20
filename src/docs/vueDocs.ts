@@ -11,6 +11,7 @@ const GUIDE = 'https://vuejs.org/guide/';
 
 const directive = (summary: string, example: string, link: string, details?: string): DocEntry => ({
   kind: 'syntax',
+  language: 'Vue',
   summary,
   example,
   link,
@@ -181,6 +182,7 @@ export const VUE_BLOCK_ATTRIBUTES: Record<string, DocEntry> = {
 /** The `{{ }}` interpolation in template text. */
 export const VUE_INTERPOLATION: DocEntry = {
   kind: 'syntax',
+  language: 'Vue',
   title: '{{ }} (interpolation)',
   summary: 'Shows the value of a JavaScript expression as text, updated whenever the data it uses changes. The text is escaped: HTML in it is shown as text, not rendered.',
   example: '<p>Hello, {{ user.name }}! You have {{ items.length * 2 }} points.</p>',
